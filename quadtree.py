@@ -4,9 +4,7 @@ Nolan Potter and Ethan Chen
 """
 
 import random
-from queue import Queue
-import matplotlib.pyplot as plt
-import numpy as np
+
 
 class point:
 
@@ -92,6 +90,33 @@ class quadtree:
             self.topright.insert(point)
             self.botleft.insert(point)
             self.botright.insert(point)
+
+    def killemptychildren(self):
+        #get rid of any cells that do not have points inisde
+        if not self.topleft.divided and len(self.topleft.square.points) != 0:
+            return
+
+        if not self.topleft.divided and len(self.topleft.square.points) == 0:
+            self.topleft = None
+        else:
+            self.topleft.killemptychildren()
+        
+        if not self.topright.divided and len(self.topright.square.points) == 0:
+            self.topright = None
+        else:
+            self.topright.killemptychildren()
+
+        if not self.botleft.divided and len(self.botleft.square.points) == 0:
+            self.botleft = None
+        else:
+            self.botleft.killemptychildren()
+
+        if not self.botright.divided and len(self.botright.square.points) == 0:
+            self.botright = None
+        else:
+            self.botright.killemptychildren()
+
+        
 
     def printsub(self):
         if self.divided is False and len(self.square.points) > 0:
