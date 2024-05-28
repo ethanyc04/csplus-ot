@@ -93,7 +93,7 @@ class quadtree:
 
     def killemptychildren(self):
         #get rid of any cells that do not have points inisde
-        if not self.divided and len(self.topleft.square.points) != 0:
+        if not self.divided and len(self.square.points) != 0:
             return
 
         if not self.topleft.divided and len(self.topleft.square.points) == 0:
