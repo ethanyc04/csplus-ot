@@ -4,6 +4,8 @@ Nolan Potter and Ethan Chen
 """
 
 import random
+import matplotlib.pyplot as plt
+import math
 
 
 class point:
@@ -132,11 +134,97 @@ class quadtree:
             if self.botright is not None:
                 self.botright.printsub()
 
+    def getlistofpoints(self, lst):
+        #gets list of points from a tree
+        if self.divided is False and len(self.square.points) > 0:
+            lst[0].append(self.square.points[0].x)
+            lst[1].append(self.square.points[0].y)
+            return lst
+        if self.topleft is not None:
+            lst = self.topleft.getlistofpoints(lst)
+        if self.topright is not None:
+            lst = self.topright.getlistofpoints(lst)
+        if self.botleft is not None:
+            lst = self.botleft.getlistofpoints(lst)
+        if self.botright is not None:
+            lst = self.botright.getlistofpoints(lst)
+        
+        return lst
+    
+    def getcellboundaries(self, lst):
+        #returns info wiht correct format to print the line segments of the cells
+        #format is list of lists [[[x1, x2],[x3,x4]],[[y1, y2],[y3,y4]]]
+        
+        
+        line1x = [self.square.x - self.square.l / 2, self.square.x - self.square.l / 2]
+        line1y = [self.square.y - self.square.l / 2, self.square.y + self.square.l / 2]
+        lst[0].append(line1x)
+        lst[1].append(line1y)
+
+        line2x = [self.square.x - self.square.l / 2, self.square.x + self.square.l / 2]
+        line2y = [self.square.y + self.square.l / 2, self.square.y + self.square.l / 2]
+        lst[0].append(line2x)
+        lst[1].append(line2y)
+
+        line3x = [self.square.x + self.square.l / 2, self.square.x + self.square.l / 2]
+        line3y = [self.square.y + self.square.l / 2, self.square.y - self.square.l / 2]
+        lst[0].append(line3x)
+        lst[1].append(line3y)
+
+        line4x = [self.square.x - self.square.l / 2, self.square.x + self.square.l / 2]
+        line4y = [self.square.y - self.square.l / 2, self.square.y - self.square.l / 2]
+        lst[0].append(line4x)
+        lst[1].append(line4y)
+
+            
+        
+        if self.topleft is not None:
+            lst = self.topleft.getcellboundaries(lst)
+        if self.topright is not None:
+            lst = self.topright.getcellboundaries(lst)
+        if self.botleft is not None:
+            lst = self.botleft.getcellboundaries(lst)
+        if self.botright is not None:
+            lst = self.botright.getcellboundaries(lst)
+
+        return lst
+    
+    def plottree(self):
+        lstofpts = self.getlistofpoints([[],[]])
+
+        qtreeboundaries = self.getcellboundaries([[],[]])
+
+        for i in range(len(qtreeboundaries[0])):
+            plt.plot(qtreeboundaries[0][i], qtreeboundaries[1][i], color="black")
+
+        upperx = (self.square.x + self.square.l / 2) + .2 * abs(self.square.x + self.square.l / 2)
+        uppery = (self.square.y + self.square.l / 2) + .2 * abs(self.square.y + self.square.l / 2)
+
+        lowerx = (self.square.x - self.square.l / 2) - .2 * abs(self.square.x - self.square.l / 2)
+        lowery = (self.square.y - self.square.l / 2) - .2 * abs(self.square.y - self.square.l / 2)
+
+        plt.plot(lstofpts[0], lstofpts[1], 'ro')
+        plt.axis((lowerx, upperx, lowery, uppery))
+        plt.show()
+        
 
 if __name__ == "__main__":
     sq1 = square(0, 0, 10)
     qtree1 = quadtree(sq1, 1)
+    qtree1.insert(point(1,0, []))
+    qtree1.insert(point(0,0, []))
+    qtree1.insert(point(3,3, []))
+    qtree1.insert(point(4,-1, []))
+    qtree1.insert(point(3,-3, []))
+    qtree1.insert(point(1,2, []))
+    qtree1.insert(point(-3,-3, []))
+    qtree1.insert(point(-4,-4, []))
+    qtree1.killemptychildren()
     # for x in range(0, 10):
     #     pt = point(random.randint(-5, 5), random.randint(-5,5))
     #     print(pt)
     #     qtree1.insert(pt)
+    qtree1.printsub()
+    
+    qtree1.plottree()
+
