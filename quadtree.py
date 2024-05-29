@@ -136,9 +136,19 @@ class quadtree:
 
     def getlistofpoints(self, lst):
         #gets list of points from a tree
+        #input list in form of [[xcoords], [ycoords], [distribution]
         if self.divided is False and len(self.square.points) > 0:
             lst[0].append(self.square.points[0].x)
             lst[1].append(self.square.points[0].y)
+            if min(self.square.points[0].data) > 0:
+                lst[2].append(2)
+            elif self.square.points[0].data[0] > 0:
+                lst[2].append(0)
+            elif self.square.points[0].data[1] > 0:
+                lst[2].append(1)
+            else:
+                lst[2].append(1000)
+
             return lst
         if self.topleft is not None:
             lst = self.topleft.getlistofpoints(lst)
@@ -190,7 +200,8 @@ class quadtree:
         return lst
     
     def plottree(self):
-        lstofpts = self.getlistofpoints([[],[]])
+        lstofpts = self.getlistofpoints([[],[],[]])
+        print(lstofpts)
 
         qtreeboundaries = self.getcellboundaries([[],[]])
 
@@ -203,7 +214,16 @@ class quadtree:
         lowerx = (self.square.x - self.square.l / 2) - .2 * abs(self.square.x - self.square.l / 2)
         lowery = (self.square.y - self.square.l / 2) - .2 * abs(self.square.y - self.square.l / 2)
 
-        plt.plot(lstofpts[0], lstofpts[1], 'ro')
+        for i in range(len(lstofpts[0])):
+            if lstofpts[2][i] == 0:
+                col = "red"
+            elif lstofpts[2][i] == 1:
+                col = "blue"
+            elif lstofpts[2][i] == 2:
+                col = "purple"
+            else:
+                col = "black"
+            plt.plot([lstofpts[0][i]], [lstofpts[1][i]], 'ro', color=col)
         plt.axis((lowerx, upperx, lowery, uppery))
         plt.show()
         
@@ -211,14 +231,14 @@ class quadtree:
 if __name__ == "__main__":
     sq1 = square(0, 0, 10)
     qtree1 = quadtree(sq1, 1)
-    qtree1.insert(point(1,0, []))
-    qtree1.insert(point(0,0, []))
-    qtree1.insert(point(3,3, []))
-    qtree1.insert(point(4,-1, []))
-    qtree1.insert(point(3,-3, []))
-    qtree1.insert(point(1,2, []))
-    qtree1.insert(point(-3,-3, []))
-    qtree1.insert(point(-4,-4, []))
+    qtree1.insert(point(1,0, [1,0]))
+    qtree1.insert(point(0,0, [1,1]))
+    qtree1.insert(point(3,3, [0,1]))
+    qtree1.insert(point(4,-1, [5,1]))
+    qtree1.insert(point(3,-3, [0,2]))
+    qtree1.insert(point(1,2, [0,4]))
+    qtree1.insert(point(-3,-3, [4,0]))
+    qtree1.insert(point(-4,-4, [2,0]))
     qtree1.killemptychildren()
     # for x in range(0, 10):
     #     pt = point(random.randint(-5, 5), random.randint(-5,5))
