@@ -137,6 +137,7 @@ class quadtree:
     def getlistofpoints(self, lst):
         #gets list of points from a tree
         #input list in form of [[xcoords], [ycoords], [distribution]
+        #colors are hard coded to work with 2 distributinos
         if self.divided is False and len(self.square.points) > 0:
             lst[0].append(self.square.points[0].x)
             lst[1].append(self.square.points[0].y)
@@ -200,6 +201,7 @@ class quadtree:
         return lst
     
     def plottree(self):
+        #plots a quadtree, colors are hard coded for 2 distributions
         lstofpts = self.getlistofpoints([[],[],[]])
         print(lstofpts)
 
@@ -226,6 +228,27 @@ class quadtree:
             plt.plot([lstofpts[0][i]], [lstofpts[1][i]], 'ro', color=col)
         plt.axis((lowerx, upperx, lowery, uppery))
         plt.show()
+
+
+def getboundingbox(lstofpts):
+    minx = float('inf')
+    maxx = -float('inf')
+    miny = float('inf')
+    maxy = -float('inf')
+
+    for pt in lstofpts:
+        if pt.x < minx:
+            minx = pt.x
+        if pt.x > maxx:
+            maxx = pt.x
+        if pt.y < miny:
+            miny = pt.y
+        if pt.y > maxy:
+            maxy = pt.y
+    
+    return minx, maxx, miny, maxy
+
+    
         
 
 if __name__ == "__main__":
@@ -245,6 +268,6 @@ if __name__ == "__main__":
     #     print(pt)
     #     qtree1.insert(pt)
     qtree1.printsub()
-    
-    qtree1.plottree()
-
+    listofpts = [point(1,0, [1,0]), point(-4,-4, [2,0]), point(3,-3, [0,2])]
+    print(getboundingbox(listofpts))
+    # qtree1.plottree()
