@@ -26,7 +26,10 @@ def compute_ot(qtree, cost_func):
             return qtree.square.points
         else: return []
     #recursive call
-    qtree.square.points = compute_ot(qtree.topleft, cost_func) + compute_ot(qtree.topright, cost_func) + compute_ot(qtree.botleft, cost_func) + compute_ot(qtree.botright, cost_func)
+    qtree.square.points = (compute_ot(qtree.topleft, cost_func) + compute_ot(qtree.topright, cost_func)
+                         + compute_ot(qtree.botleft, cost_func) + compute_ot(qtree.botright, cost_func))
+    if qtree.square.points == []:
+        return []
     mass = [0, 0] #only two distributions
     dist1_q = Queue()
     dist2_q = Queue()
