@@ -8,7 +8,7 @@ import random
 
 class point:
 
-    def __init__(self, x, y, data=[]):
+    def __init__(self, x, y, data):
         #point data
         self.x = x
         self.y = y
@@ -19,12 +19,12 @@ class point:
 
 class square:
 
-    def __init__(self, x, y, l, points=[]):
+    def __init__(self, x, y, l):
         # square cell initializing
         self.x = x
         self.y = y
         self.l = l
-        self.points = points
+        self.points = []
 
     def __repr__(self):
         return f'({self.x}, {self.y}, {self.l})'
@@ -51,16 +51,16 @@ class quadtree:
         #divide up the current cell
         x, y, l = self.square.x, self.square.y, self.square.l
 
-        topleft = square(x-l/4, y+l/4, l/2, [])
+        topleft = square(x-l/4, y+l/4, l/2)
         self.topleft = quadtree(topleft, 1)
 
-        topright = square(x+l/4, y+l/4, l/2, [])
+        topright = square(x+l/4, y+l/4, l/2)
         self.topright = quadtree(topright, 1)
 
-        botleft = square(x-l/4, y-l/4, l/2, [])
+        botleft = square(x-l/4, y-l/4, l/2)
         self.botleft = quadtree(botleft, 1)
 
-        botright = square(x+l/4, y-l/4, l/2, [])
+        botright = square(x+l/4, y-l/4, l/2)
         self.botright = quadtree(botright, 1)
 
         self.divided = True
