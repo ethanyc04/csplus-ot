@@ -12,7 +12,7 @@ def is_leaf(qtree):
 def compute_ot(qtree, cost_func):
     global cost
     global transport_plan
-    
+
     if qtree == None:
         return []
 
@@ -41,17 +41,18 @@ def compute_ot(qtree, cost_func):
 
     while val > 0:
         p1 = dist1_q.get()
-        transport_plan[(p1.x, p1.y)] = []
-        if p1.data[0] >= val:   # map all points from dist2 
-            val = 0
+        if (p1.x, p1.y) not in transport_plan:
+            transport_plan[(p1.x, p1.y)] = []
+        if p1.data[0] > val:   # map all points from dist2 
             while dist2_q.empty() == False:
                 p2 = dist2_q.get()
                 transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
                 cost += cost_func(p1, p2) * p2.data[1]
                 p2.data[1] = 0
             p1.data[0] -= val
+            val = 0
 
-        else:   # p1.data[0] < val
+        else:   # p1.data[0] <= val
             m = p1.data[0]
             while m > 0:
                 p2 = dist2_q.get()
@@ -63,11 +64,11 @@ def compute_ot(qtree, cost_func):
                     p1.data[0] -= p2.data[1]
                     p2.data[1] = 0
                 else:   # m < p2.data[1]
-                    m = 0
                     val -= m
                     transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), m))
-                    cost += cost_func(p1, p2) * p2.data[1]
+                    cost += cost_func(p1, p2) * m
                     p1.data[0] -= m
                     p2.data[1] -= m
+                    m = 0
     
     return [p for p in qtree.square.points if max(p.data) > 0]
