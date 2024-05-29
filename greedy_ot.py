@@ -10,6 +10,9 @@ def is_leaf(qtree):
         return False
 
 def compute_ot(qtree, cost_func):
+    global cost
+    global transport_plan
+    
     if qtree == None:
         return []
 
@@ -17,13 +20,13 @@ def compute_ot(qtree, cost_func):
         p = qtree.square.points[0] # there should only be one point 
         val = min(p.data)
         if val > 0: # if both distributions have mass at same point
-            transport_plan[(p.x, p.y)] = ((p.x, p.y), val)
+            transport_plan[(p.x, p.y)] = [((p.x, p.y), val)]
             p.data = [m-val for m in p.data]
         if max(p.data) > 0: # if there is still mass at point push up
             return qtree.square.points
         else: return []
     #recursive call
-    qtree.square.points = compute_ot(qtree.topleft) + compute_ot(qtree.topright) + compute_ot(qtree.bottomleft) + compute_ot(qtree.bottomright)
+    qtree.square.points = compute_ot(qtree.topleft, cost_func) + compute_ot(qtree.topright, cost_func) + compute_ot(qtree.botleft, cost_func) + compute_ot(qtree.botright, cost_func)
     mass = [0, 0] #only two distributions
     dist1_q = Queue()
     dist2_q = Queue()
@@ -43,7 +46,7 @@ def compute_ot(qtree, cost_func):
             val = 0
             while dist2_q.empty() == False:
                 p2 = dist2_q.get()
-                transport_plan[(p1.x, p1.y)].append((p2.x, p2.y), p2.data[1])
+                transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
                 cost += cost_func(p1, p2) * p2.data[1]
                 p2.data[1] = 0
             p1.data[0] -= val
@@ -55,14 +58,14 @@ def compute_ot(qtree, cost_func):
                 if m >= p2.data[1]:
                     m -= p2.data[1]
                     val -= p2.data[1]
-                    transport_plan[(p1.x, p1.y)].append((p2.x, p2.y), p2.data[1])
+                    transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
                     cost += cost_func(p1, p2) * p2.data[1]
                     p1.data[0] -= p2.data[1]
                     p2.data[1] = 0
                 else:   # m < p2.data[1]
                     m = 0
                     val -= m
-                    transport_plan[(p1.x, p1.y)].append((p2.x, p2.y), m)
+                    transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), m))
                     cost += cost_func(p1, p2) * p2.data[1]
                     p1.data[0] -= m
                     p2.data[1] -= m
