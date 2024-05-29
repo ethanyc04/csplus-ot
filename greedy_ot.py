@@ -10,6 +10,9 @@ def is_leaf(qtree):
         return False
 
 def compute_ot(qtree, cost_func):
+    if qtree == None:
+        return []
+
     if is_leaf(qtree): # base case: leaf node
         p = qtree.square.points[0] # there should only be one point 
         val = min(p.data)
