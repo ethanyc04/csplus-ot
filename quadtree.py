@@ -71,7 +71,7 @@ class quadtree:
             self.botleft.insert(point)
             self.botright.insert(point)
 
-        self.points = []
+        self.square.points = []
 
     def insert(self, point):
         #insert a point into the quadtree
