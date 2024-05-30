@@ -245,8 +245,15 @@ def getboundingbox(lstofpts):
             miny = pt.y
         if pt.y > maxy:
             maxy = pt.y
+
+
+    centerx = (minx + maxx)/2
+    centery = (miny + maxy)/2
+    length = max(maxx-minx, maxy,miny)
     
-    return minx, maxx, miny, maxy
+    return centerx, centery, length
+
+
 
     
         
