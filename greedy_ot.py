@@ -72,6 +72,7 @@ def compute_ot(qtree, cost_func):
                     cost += cost_func(p1, p2) * m
                     p1.data[0] -= m
                     p2.data[1] -= m
+                    dist2_q.put(p2)
                     m = 0
     
     return [p for p in qtree.square.points if max(p.data) > 0]
