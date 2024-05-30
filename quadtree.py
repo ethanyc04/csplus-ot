@@ -203,7 +203,6 @@ class quadtree:
     def plottree(self):
         #plots a quadtree, colors are hard coded for 2 distributions
         lstofpts = self.getlistofpoints([[],[],[]])
-        print(lstofpts)
 
         qtreeboundaries = self.getcellboundaries([[],[]])
 
@@ -231,6 +230,7 @@ class quadtree:
 
 
 def getboundingbox(lstofpts):
+    #constructs a square for the smallest possible non shifted qtree
     minx = float('inf')
     maxx = -float('inf')
     miny = float('inf')
@@ -252,6 +252,16 @@ def getboundingbox(lstofpts):
     length = max(maxx-minx, maxy,miny)
     
     return centerx, centery, length
+
+def randshift(lstofpts):
+    #constructs the initial square for a random shift quadtree
+    initx, inity, initlength = getboundingbox(lstofpts)
+
+    newcenterx = initx - initlength/2
+    newcentery = inity - initlength/2
+    newlength = initlength*2
+
+
 
 
 
