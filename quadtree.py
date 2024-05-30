@@ -214,17 +214,23 @@ class quadtree:
 
         lowerx = (self.square.x - self.square.l / 2) - .2 * abs(self.square.x - self.square.l / 2)
         lowery = (self.square.y - self.square.l / 2) - .2 * abs(self.square.y - self.square.l / 2)
-
+        dist1 = [[],[]]
+        dist2 = [[],[]]
+        bothdist = [[],[]]
+        print(lstofpts)
         for i in range(len(lstofpts[0])):
             if lstofpts[2][i] == 0:
-                col = "red"
+                dist1[0].append(lstofpts[0][i])
+                dist1[1].append(lstofpts[1][i])
             elif lstofpts[2][i] == 1:
-                col = "blue"
-            elif lstofpts[2][i] == 2:
-                col = "purple"
+                dist2[0].append(lstofpts[0][i])
+                dist2[1].append(lstofpts[1][i])
             else:
-                col = "black"
-            plt.plot([lstofpts[0][i]], [lstofpts[1][i]], 'ro', color=col)
+                bothdist[0].append(lstofpts[0][i])
+                bothdist[1].append(lstofpts[1][i])
+        plt.plot(dist1[0], dist1[1], 'ro', color="red")
+        plt.plot(dist2[0], dist2[1], 'ro', color="blue")
+        plt.plot(bothdist[0], bothdist[1], 'ro', color="purple")
         plt.axis((lowerx, upperx, lowery, uppery))
         plt.show()
 
@@ -287,4 +293,4 @@ if __name__ == "__main__":
     qtree1.printsub()
     listofpts = [point(1,0, [1,0]), point(-4,-4, [2,0]), point(3,-3, [0,2])]
     print(getboundingbox(listofpts))
-    # qtree1.plottree()
+    qtree1.plottree()
