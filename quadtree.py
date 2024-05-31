@@ -6,6 +6,7 @@ Nolan Potter and Ethan Chen
 import random
 import matplotlib.pyplot as plt
 import math
+import numpy as np
 
 
 class point:
@@ -33,8 +34,8 @@ class square:
 
     def contains(self, point):
         # checks if point falls within a cell
-        xcheck = self.x - (self.l / 2) <= point.x and self.x + (self.l / 2) > point.x
-        ycheck = self.y - (self.l / 2) <= point.y and self.y + (self.l / 2) > point.y
+        xcheck = self.x - (self.l / 2) <= point.x and self.x + (self.l / 2) >= point.x
+        ycheck = self.y - (self.l / 2) <= point.y and self.y + (self.l / 2) >= point.y
         return xcheck and ycheck
 
 class quadtree:
@@ -78,20 +79,29 @@ class quadtree:
     def insert(self, point):
         #insert a point into the quadtree
         if not self.square.contains(point):
-            return
+            return False
         elif self.divided:
-            self.topleft.insert(point)
-            self.topright.insert(point)
-            self.botleft.insert(point)
-            self.botright.insert(point)
+            result = self.topleft.insert(point)
+            if not result:
+                result = result or self.topright.insert(point)
+            if not result:
+                result = result or self.botleft.insert(point)
+            if not result:
+                result = result or self.botright.insert(point)
+            return True
         elif len(self.square.points) < self.capacity:
             self.square.points.append(point)
+            return True
         else:
             self.subdivide()
-            self.topleft.insert(point)
-            self.topright.insert(point)
-            self.botleft.insert(point)
-            self.botright.insert(point)
+            result = self.topleft.insert(point)
+            if not result:
+                result = result or self.topright.insert(point)
+            if not result:
+                result = result or self.botleft.insert(point)
+            if not result:
+                result = result or self.botright.insert(point)
+            return True
 
     def killemptychildren(self):
         #get rid of any cells that do not have points inisde
@@ -259,13 +269,21 @@ def getboundingbox(lstofpts):
     
     return centerx, centery, length
 
-def randshift(lstofpts):
+def getrandshift(lstofpts):
     #constructs the initial square for a random shift quadtree
     initx, inity, initlength = getboundingbox(lstofpts)
+    minx = initx - initlength/2
+    maxx = initx + initlength/2
+    miny = inity - initlength/2
+    maxy = inity + initlength/2
 
-    newcenterx = initx - initlength/2
-    newcentery = inity - initlength/2
+    shiftx = np.random.uniform(minx, maxx)
+    shifty = np.random.uniform(miny, maxy)
+
     newlength = initlength*2
+    
+    return shiftx, shifty, newlength
+
 
 
 
@@ -275,22 +293,23 @@ def randshift(lstofpts):
         
 
 if __name__ == "__main__":
-    sq1 = square(0, 0, 10)
-    qtree1 = quadtree(sq1, 1)
-    qtree1.insert(point(1,0, [1,0]))
-    qtree1.insert(point(0,0, [1,1]))
-    qtree1.insert(point(3,3, [0,1]))
-    qtree1.insert(point(4,-1, [5,1]))
-    qtree1.insert(point(3,-3, [0,2]))
-    qtree1.insert(point(1,2, [0,4]))
-    qtree1.insert(point(-3,-3, [4,0]))
-    qtree1.insert(point(-4,-4, [2,0]))
-    qtree1.killemptychildren()
     # for x in range(0, 10):
     #     pt = point(random.randint(-5, 5), random.randint(-5,5))
     #     print(pt)
     #     qtree1.insert(pt)
-    qtree1.printsub()
-    listofpts = [point(1,0, [1,0]), point(-4,-4, [2,0]), point(3,-3, [0,2])]
-    print(getboundingbox(listofpts))
-    qtree1.plottree()
+    listofpts = [point(1,0, [1,0]), point(-4,-4, [2,0]), point(3,-3, [0,2]), point(0,0, [1,1]),point(3,3, [0,1])]
+    x,y,l = getboundingbox(listofpts)
+    sq1 = square(x,y,l)
+    qtree = quadtree(sq1, 1)
+    x,y,l = getrandshift(listofpts)
+    sq2 = square(x,y,l)
+    randshiftqtree = quadtree(sq2, 1)
+    for pt in listofpts:
+        qtree.insert(pt)
+        randshiftqtree.insert(pt)
+    qtree.killemptychildren()
+    randshiftqtree.killemptychildren()
+    qtree.plottree()
+    randshiftqtree.plottree()
+    print(randshiftqtree.square)
+
