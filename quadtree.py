@@ -265,7 +265,7 @@ def getboundingbox(lstofpts):
 
     centerx = (minx + maxx)/2
     centery = (miny + maxy)/2
-    length = max(maxx-minx, maxy,miny)
+    length = max(maxx-minx, maxy-miny)
     
     return centerx, centery, length
 
