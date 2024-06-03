@@ -21,7 +21,8 @@ def compute_ot(qtree, cost_func):
         val = min(p.data)
         if val > 0: # if both distributions have mass at same point
             transport_plan[(p.x, p.y)] = [((p.x, p.y), val)]
-            p.data = [m-val for m in p.data]
+            p.data[0] -= val
+            p.data[1] -= val
         if max(p.data) > 0: # if there is still mass at point push up
             return qtree.square.points
         else: return []
@@ -40,39 +41,57 @@ def compute_ot(qtree, cost_func):
             dist1_q.put(p)
         else:                    # each point now should only have mass from one distribution after           
             dist2_q.put(p)       # pairing at leaf nodes
+    
     val = min(mass)
 
-    while val > 0.0000000000001:
-        p1 = dist1_q.get()
-        if (p1.x, p1.y) not in transport_plan:
-            transport_plan[(p1.x, p1.y)] = []
-        if p1.data[0] > val:   # map all points from dist2 
-            while dist2_q.empty() == False:
-                p2 = dist2_q.get()
-                transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
-                cost += cost_func(p1, p2) * p2.data[1]
-                p2.data[1] = 0
-            p1.data[0] -= val
-            val = 0
+    while val > 0.00000000000001:
+        while dist1_q.empty() == False and dist2_q.empty() == False:
+            p1 = dist1_q.get()
+            p2 = dist2_q.get()
+            massmatch = min(p1.data[0], p2.data[1])
+            val -= massmatch
+            p1.data[0] -= massmatch
+            p2.data[1] -= massmatch
+            if (p1.x, p1.y) not in transport_plan:
+                transport_plan[(p1.x, p1.y)] = []
+            transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), massmatch))
+            cost += cost_func(p1, p2) * massmatch
+            if p1.data[0] > 0.00000000000001:
+                dist1_q.put(p1)
+            if p2.data[1] > 0.00000000000001:
+                dist2_q.put(p2)
 
-        else:   # p1.data[0] <= val
-            m = p1.data[0]
-            while m > 0.0000000000001:
-                p2 = dist2_q.get()
-                if m >= p2.data[1]:
-                    m -= p2.data[1]
-                    val -= p2.data[1]
-                    transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
-                    cost += cost_func(p1, p2) * p2.data[1]
-                    p1.data[0] -= p2.data[1]
-                    p2.data[1] = 0
-                else:   # m < p2.data[1]
-                    val -= m
-                    transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), m))
-                    cost += cost_func(p1, p2) * m
-                    p1.data[0] -= m
-                    p2.data[1] -= m
-                    dist2_q.put(p2)
-                    m = 0
+
+        # p1 = dist1_q.get()
+        # if (p1.x, p1.y) not in transport_plan:
+        #     transport_plan[(p1.x, p1.y)] = []
+        # if p1.data[0] > val:   # map all points from dist2 
+        #     while dist2_q.empty() == False:
+        #         p2 = dist2_q.get()
+        #         transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
+        #         cost += cost_func(p1, p2) * p2.data[1]
+        #         p2.data[1] = 0
+        #     p1.data[0] -= val
+        #     val = 0
+
+        # else:   # p1.data[0] <= val
+        #     m = p1.data[0]
+        #     while m > 0.00000000000001:
+        #         p2 = dist2_q.get()
+        #         if m >= p2.data[1]:
+        #             m -= p2.data[1]
+        #             val -= p2.data[1]
+        #             transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), p2.data[1]))
+        #             cost += cost_func(p1, p2) * p2.data[1]
+        #             p1.data[0] -= p2.data[1]
+        #             p2.data[1] = 0
+        #         else:   # m < p2.data[1]
+        #             val -= m
+        #             transport_plan[(p1.x, p1.y)].append(((p2.x, p2.y), m))
+        #             cost += cost_func(p1, p2) * m
+        #             p1.data[0] = 0
+        #             p2.data[1] -= m
+        #             dist2_q.put(p2)
+        #             m = 0
     
-    return [p for p in qtree.square.points if max(p.data) > 0.0000000000001]
+    return [p for p in qtree.square.points if max(p.data) > 0.00000000000001]
