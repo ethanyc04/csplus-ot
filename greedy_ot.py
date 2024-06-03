@@ -42,7 +42,7 @@ def compute_ot(qtree, cost_func):
             dist2_q.put(p)       # pairing at leaf nodes
     val = min(mass)
 
-    while val > 0:
+    while val > 0.0000000000001:
         p1 = dist1_q.get()
         if (p1.x, p1.y) not in transport_plan:
             transport_plan[(p1.x, p1.y)] = []
@@ -57,7 +57,7 @@ def compute_ot(qtree, cost_func):
 
         else:   # p1.data[0] <= val
             m = p1.data[0]
-            while m > 0:
+            while m > 0.0000000000001:
                 p2 = dist2_q.get()
                 if m >= p2.data[1]:
                     m -= p2.data[1]
@@ -75,4 +75,4 @@ def compute_ot(qtree, cost_func):
                     dist2_q.put(p2)
                     m = 0
     
-    return [p for p in qtree.square.points if max(p.data) > 0]
+    return [p for p in qtree.square.points if max(p.data) > 0.0000000000001]
