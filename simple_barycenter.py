@@ -12,14 +12,15 @@ def is_leaf(qtree):
 def simple_barycenter(qtree, cost_func):
     global cost
     global barycenter
-    k = len(qtree.square.points[0].data)   # number of distributions
-    center = point(qtree.square.x, qtree.square.y, [])
 
     if qtree == None:
         return []
+    
+    center = point(qtree.square.x, qtree.square.y, [])
 
     if is_leaf(qtree):
         p = qtree.square.points[0]
+        k = len(p.data)     # number of distributions
         min_mass = min(p.data)
         if min_mass > 0:
             barycenter[(p.x, p.y)] = min_mass
@@ -35,6 +36,7 @@ def simple_barycenter(qtree, cost_func):
     if qtree.square.points == []:
         return []
     
+    k = len(qtree.square.points[0].data)   # number of distributions
     mass = [0 for i in range(k)]
     pt_queue = Queue()
     for p in qtree.square.points:
@@ -43,14 +45,15 @@ def simple_barycenter(qtree, cost_func):
             pt_queue.put(p)
     
     min_mass = min(mass)
-    barycenter[(center.x, center.y)] = min_mass
-    mass_needed = [min_mass for i in range(k)]     # mass still to be paired for each distribution
-    while max(mass_needed) > 0.00000000000001:
-        p = pt_queue.get()
-        for i in range(k):
-            m = min(p.data[i], mass_needed[i])
-            cost += cost_func(center, p) * m
-            p.data[i] -= m
-            mass_needed[i] -= m
-    
-    return [p for p in qtree.square.points if max[p.data] > 0.00000000000001]
+    if min_mass > 0.00000000000001:
+        barycenter[(center.x, center.y)] = min_mass
+        mass_needed = [min_mass for i in range(k)]     # mass still to be paired for each distribution
+        while max(mass_needed) > 0.00000000000001:
+            p = pt_queue.get()
+            for i in range(k):
+                m = min(p.data[i], mass_needed[i])
+                cost += cost_func(center, p) * m
+                p.data[i] -= m
+                mass_needed[i] -= m
+        
+    return [p for p in qtree.square.points if max(p.data) > 0.00000000000001]
