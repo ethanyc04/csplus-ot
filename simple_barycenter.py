@@ -42,7 +42,7 @@ def simple_barycenter(qtree, cost_func):
     for p in qtree.square.points:
         for i in range(k):
             mass[i] += p.data[i]
-            pt_queue.put(p)
+        pt_queue.put(p)
     
     min_mass = min(mass)
     if min_mass > 0.00000000000001:
