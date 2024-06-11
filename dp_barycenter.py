@@ -1,8 +1,4 @@
-from queue import Queue
-import matplotlib.pyplot as plt
-import numpy as np
 import math
-import copy
 
 class point:
 
@@ -415,12 +411,10 @@ def get_barycenter(qtree):
 
 def compute_barycenter(qtree, cost_func, k):
     initialize(qtree, cost_func, k)
-    print(qtree.flow)
-    print(cost)
     qtree.mass = 1
     compute_augmenting_path(qtree, k)
     while qtree.augment_path_cost < 0 and qtree.mass > 0:
-        push_flow(qtree, euclidean_dist, 3, qtree.augment_mass)
+        push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         qtree.mass -= qtree.augment_mass
         compute_augmenting_path(qtree, k)
     
