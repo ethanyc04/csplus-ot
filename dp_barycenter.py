@@ -425,16 +425,4 @@ def compute_barycenter(qtree, cost_func, k):
         compute_augmenting_path(qtree, k)
     
     get_barycenter(qtree)
-
-sq = square(6, 6, 12)
-qtree = quadtree(sq)
-pt1 = point(1, 5, [1, 1, 0])
-pt2 = point(10, 10, [0 , 0, 1])
-
-qtree.insert(pt1)
-qtree.insert(pt2)
-
-qtree.killemptychildren()
-compute_barycenter(qtree, euclidean_dist, 3)
-print(barycenter)
-print(cost)     
+ 
