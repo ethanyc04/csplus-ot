@@ -324,21 +324,7 @@ def positive_flow(qtree, k):    #return number of distributions with positive fl
             n+=1
     return n
 
-def compute_augmenting_path(qtree, k):
-    if qtree == None:
-        return
-    if is_leaf(qtree):
-        k1 = positive_flow(qtree, k)      # number of distributions with positive flow
-        qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-        return
-    
-    compute_augmenting_path(qtree.botleft, k)
-    compute_augmenting_path(qtree.botright, k)
-    compute_augmenting_path(qtree.topleft, k)
-    compute_augmenting_path(qtree.topright, k)
-
-    k1 = positive_flow(qtree, k)      # number of distributions with positive flow
-    qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+def minimize_path_cost(qtree):
     qtree.augment_path_cost = 0
     if qtree.botleft != None:
         c = qtree.botleft.augment_path_cost + qtree.botleft.augment_cost
@@ -360,19 +346,38 @@ def compute_augmenting_path(qtree, k):
         if c < qtree.augment_path_cost:
             qtree.augment_path_cost = c
             qtree.min_cost_child = qtree.topright
-    
+
+def update_augment_mass(qtree, k):
     qtree.augment_mass = 0
     if qtree.augment_path_cost < 0:
-        min = float("inf")
+        min_flow = float("inf")
         for i in range(k):
             f = qtree.min_cost_child.flow[i]
             if f > 0.000000000000001:
-                if f < min:
-                    min = f
+                if f < min_flow:
+                    min_flow = f
         if qtree.min_cost_child.augment_mass == 0:
-            qtree.augment_mass = min
+            qtree.augment_mass = min_flow
         else:
-            qtree.augment_mass = min(min, qtree.min_cost_child.augment_mass)
+            qtree.augment_mass = min(min_flow, qtree.min_cost_child.augment_mass)
+
+def compute_augmenting_path(qtree, k):
+    if qtree == None:
+        return
+    if is_leaf(qtree):
+        k1 = positive_flow(qtree, k)      # number of distributions with positive flow
+        qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+        return
+    
+    compute_augmenting_path(qtree.botleft, k)
+    compute_augmenting_path(qtree.botright, k)
+    compute_augmenting_path(qtree.topleft, k)
+    compute_augmenting_path(qtree.topright, k)
+
+    k1 = positive_flow(qtree, k)      # number of distributions with positive flow
+    qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+    minimize_path_cost(qtree)
+    update_augment_mass(qtree, k)
 
 def push_flow(qtree, cost_func, k, push_mass):
     global cost
@@ -396,6 +401,8 @@ def push_flow(qtree, cost_func, k, push_mass):
     k1 = positive_flow(qtree, k)
     qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
     qtree.min_cost_child = None
+    minimize_path_cost(qtree)
+    update_augment_mass(qtree, k)
 
 def get_barycenter(qtree):
     global barycenter
@@ -416,7 +423,7 @@ def compute_barycenter(qtree, cost_func, k):
     while qtree.augment_path_cost < 0 and qtree.mass > 0:
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         qtree.mass -= qtree.augment_mass
-        compute_augmenting_path(qtree, k)
+        #compute_augmenting_path(qtree, k)
     
     get_barycenter(qtree)
  
