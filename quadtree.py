@@ -69,10 +69,13 @@ class quadtree:
         self.divided = True
 
         for point in self.square.points:
-            self.topleft.insert(point)
-            self.topright.insert(point)
-            self.botleft.insert(point)
-            self.botright.insert(point)
+            result = self.topleft.insert(point)
+            if not result:
+                result = result or self.topright.insert(point)
+            if not result:
+                result = result or self.botleft.insert(point)
+            if not result:
+                result = result or self.botright.insert(point)
 
         self.square.points = []
 
