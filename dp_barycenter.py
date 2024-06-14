@@ -418,11 +418,12 @@ def compute_barycenter(qtree, cost_func, k):
     initialize(qtree, cost_func, k)
     qtree.mass = 1
     compute_augmenting_path(qtree, k)
+    cost += qtree.augment_path_cost*qtree.augment_mass
     
     while qtree.augment_path_cost < 0 and qtree.mass > 0:
-        cost += qtree.augment_path_cost*qtree.augment_mass
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         qtree.mass -= qtree.augment_mass
+        cost += qtree.augment_path_cost*qtree.augment_mass
     
     get_barycenter(qtree)
  
