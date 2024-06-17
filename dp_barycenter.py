@@ -31,10 +31,13 @@ class square:
     
 class quadtree:
 
-    def __init__(self, square, divided=False):
+    def __init__(self, x, y, l):
         #initialize quadtree object
-        self.square = square
-        self.divided = divided
+        self.x = x
+        self.y = y
+        self.l = l
+        self.points = []
+        self.divided = False
         self.topleft = None
         self.topright = None
         self.botleft = None
@@ -48,29 +51,31 @@ class quadtree:
         self.augment_path_cost = 0
         self.augment_mass = 0
 
+    def contains(self, point):
+        # checks if point falls within a cell
+        xcheck = self.x - (self.l / 2) <= point.x and self.x + (self.l / 2) >= point.x
+        ycheck = self.y - (self.l / 2) <= point.y and self.y + (self.l / 2) >= point.y
+        return xcheck and ycheck
+
     def subdivide(self):
         #divide up the current cell
-        x, y, l = self.square.x, self.square.y, self.square.l
+        x, y, l = self.x, self.y, self.l
 
-        topleft = square(x-l/4, y+l/4, l/2)
-        self.topleft = quadtree(topleft)
+        self.topleft = quadtree(x-l/4, y+l/4, l/2)
         self.topleft.parent = self
 
-        topright = square(x+l/4, y+l/4, l/2)
-        self.topright = quadtree(topright)
+        self.topright = quadtree(x+l/4, y+l/4, l/2)
         self.topright.parent = self
 
-        botleft = square(x-l/4, y-l/4, l/2)
-        self.botleft = quadtree(botleft)
+        self.botleft = quadtree(x-l/4, y-l/4, l/2)
         self.botleft.parent = self
 
-        botright = square(x+l/4, y-l/4, l/2)
-        self.botright = quadtree(botright)
+        self.botright = quadtree(x+l/4, y-l/4, l/2)
         self.botright.parent = self
 
         self.divided = True
 
-        for point in self.square.points:
+        for point in self.points:
             leaf = self.topleft.insert(point)
             if leaf == None:
                 leaf = self.topright.insert(point)
@@ -79,11 +84,11 @@ class quadtree:
             if leaf == None:
                 leaf = self.botright.insert(point)
 
-        self.square.points = []
+        self.points = []
 
     def insert(self, point):
         #insert a point into the quadtree starting at root
-        if not self.square.contains(point):
+        if not self.contains(point):
             return None
         elif self.divided:
             leaf = self.topleft.insert(point)
@@ -94,8 +99,8 @@ class quadtree:
             if leaf == None:
                 leaf = self.botright.insert(point)
             return leaf
-        elif len(self.square.points) == 0:
-            self.square.points.append(point)
+        elif len(self.points) == 0:
+            self.points.append(point)
             return self
         else:
             self.subdivide()
@@ -119,25 +124,25 @@ class quadtree:
 
     def killemptychildren(self):
         #get rid of any cells that do not have points inisde
-        if not self.divided and len(self.square.points) != 0:
+        if not self.divided and len(self.points) != 0:
             return
 
-        if not self.topleft.divided and len(self.topleft.square.points) == 0:
+        if not self.topleft.divided and len(self.topleft.points) == 0:
             self.topleft = None
         else:
             self.topleft.killemptychildren()
         
-        if not self.topright.divided and len(self.topright.square.points) == 0:
+        if not self.topright.divided and len(self.topright.points) == 0:
             self.topright = None
         else:
             self.topright.killemptychildren()
 
-        if not self.botleft.divided and len(self.botleft.square.points) == 0:
+        if not self.botleft.divided and len(self.botleft.points) == 0:
             self.botleft = None
         else:
             self.botleft.killemptychildren()
 
-        if not self.botright.divided and len(self.botright.square.points) == 0:
+        if not self.botright.divided and len(self.botright.points) == 0:
             self.botright = None
         else:
             self.botright.killemptychildren()
@@ -145,9 +150,9 @@ class quadtree:
         
 
     def printsub(self):
-        if self.divided is False and len(self.square.points) > 0:
-            print(self.square)
-            print(self.square.points)
+        if self.divided is False and len(self.points) > 0:
+            print((self.x, self.y, self.l))
+            print(self.points)
         else:
             if self.topleft is not None:
                 self.topleft.printsub()
@@ -162,14 +167,14 @@ class quadtree:
         #gets list of points from a tree
         #input list in form of [[xcoords], [ycoords], [distribution]
         #colors are hard coded to work with 2 distributinos
-        if self.divided is False and len(self.square.points) > 0:
-            lst[0].append(self.square.points[0].x)
-            lst[1].append(self.square.points[0].y)
-            if min(self.square.points[0].data) > 0:
+        if self.divided is False and len(self.points) > 0:
+            lst[0].append(self.points[0].x)
+            lst[1].append(self.points[0].y)
+            if min(self.points[0].data) > 0:
                 lst[2].append(2)
-            elif self.square.points[0].data[0] > 0:
+            elif self.points[0].data[0] > 0:
                 lst[2].append(0)
-            elif self.square.points[0].data[1] > 0:
+            elif self.points[0].data[1] > 0:
                 lst[2].append(1)
             else:
                 lst[2].append(1000)
@@ -191,23 +196,23 @@ class quadtree:
         #format is list of lists [[[x1, x2],[x3,x4]],[[y1, y2],[y3,y4]]]
         
         
-        line1x = [self.square.x - self.square.l / 2, self.square.x - self.square.l / 2]
-        line1y = [self.square.y - self.square.l / 2, self.square.y + self.square.l / 2]
+        line1x = [self.x - self.l / 2, self.x - self.l / 2]
+        line1y = [self.y - self.l / 2, self.y + self.l / 2]
         lst[0].append(line1x)
         lst[1].append(line1y)
 
-        line2x = [self.square.x - self.square.l / 2, self.square.x + self.square.l / 2]
-        line2y = [self.square.y + self.square.l / 2, self.square.y + self.square.l / 2]
+        line2x = [self.x - self.l / 2, self.x + self.l / 2]
+        line2y = [self.y + self.l / 2, self.y + self.l / 2]
         lst[0].append(line2x)
         lst[1].append(line2y)
 
-        line3x = [self.square.x + self.square.l / 2, self.square.x + self.square.l / 2]
-        line3y = [self.square.y + self.square.l / 2, self.square.y - self.square.l / 2]
+        line3x = [self.x + self.l / 2, self.x + self.l / 2]
+        line3y = [self.y + self.l / 2, self.y - self.l / 2]
         lst[0].append(line3x)
         lst[1].append(line3y)
 
-        line4x = [self.square.x - self.square.l / 2, self.square.x + self.square.l / 2]
-        line4y = [self.square.y - self.square.l / 2, self.square.y - self.square.l / 2]
+        line4x = [self.x - self.l / 2, self.x + self.l / 2]
+        line4y = [self.y - self.l / 2, self.y - self.l / 2]
         lst[0].append(line4x)
         lst[1].append(line4y)
 
@@ -234,11 +239,11 @@ class quadtree:
             print("test")
             plt.plot(qtreeboundaries[0][i], qtreeboundaries[1][i], color="black")
 
-        upperx = (self.square.x + self.square.l / 2) + .2 * abs(self.square.x + self.square.l / 2)
-        uppery = (self.square.y + self.square.l / 2) + .2 * abs(self.square.y + self.square.l / 2)
+        upperx = (self.x + self.l / 2) + .2 * abs(self.x + self.l / 2)
+        uppery = (self.y + self.l / 2) + .2 * abs(self.y + self.l / 2)
 
-        lowerx = (self.square.x - self.square.l / 2) - .2 * abs(self.square.x - self.square.l / 2)
-        lowery = (self.square.y - self.square.l / 2) - .2 * abs(self.square.y - self.square.l / 2)
+        lowerx = (self.x - self.l / 2) - .2 * abs(self.x - self.l / 2)
+        lowery = (self.y - self.l / 2) - .2 * abs(self.y - self.l / 2)
         dist1 = [[],[]]
         dist2 = [[],[]]
         bothdist = [[],[]]
@@ -308,10 +313,10 @@ def initialize(qtree, cost_func, k):
     if qtree == None:
         return
     if is_leaf(qtree):
-        pt = qtree.square.points[0]
+        pt = qtree.points[0]
         for m in pt.data:
             qtree.flow.append(m)
-            cost += m* cost_func(pt.x, qtree.square.x, pt.y, qtree.square.y)
+            cost += m* cost_func(pt.x, qtree.x, pt.y, qtree.y)
         return
     
     initialize(qtree.topleft, cost_func, k)
@@ -322,22 +327,22 @@ def initialize(qtree, cost_func, k):
     if qtree.topleft != None:
         for i in range(k):
             qtree.flow[i] += qtree.topleft.flow[i]
-            qtree.topleft.cost_to_parent = cost_func(qtree.square.x, qtree.topleft.square.x, qtree.square.y, qtree.topleft.square.y)
+            qtree.topleft.cost_to_parent = cost_func(qtree.x, qtree.topleft.x, qtree.y, qtree.topleft.y)
             cost += qtree.topleft.flow[i] * qtree.topleft.cost_to_parent
     if qtree.topright != None:
         for i in range(k):
             qtree.flow[i] += qtree.topright.flow[i]
-            qtree.topright.cost_to_parent = cost_func(qtree.square.x, qtree.topright.square.x, qtree.square.y, qtree.topright.square.y)
+            qtree.topright.cost_to_parent = cost_func(qtree.x, qtree.topright.x, qtree.y, qtree.topright.y)
             cost += qtree.topright.flow[i] * qtree.topright.cost_to_parent
     if qtree.botleft != None:
         for i in range(k):
             qtree.flow[i] += qtree.botleft.flow[i]
-            qtree.botleft.cost_to_parent = cost_func(qtree.square.x, qtree.botleft.square.x, qtree.square.y, qtree.botleft.square.y)
+            qtree.botleft.cost_to_parent = cost_func(qtree.x, qtree.botleft.x, qtree.y, qtree.botleft.y)
             cost += qtree.botleft.flow[i] * qtree.botleft.cost_to_parent
     if qtree.botright != None:
         for i in range(k):
             qtree.flow[i] += qtree.botright.flow[i]
-            qtree.botright.cost_to_parent = cost_func(qtree.square.x, qtree.botright.square.x, qtree.square.y, qtree.botright.square.y)
+            qtree.botright.cost_to_parent = cost_func(qtree.x, qtree.botright.x, qtree.y, qtree.botright.y)
             cost += qtree.botright.flow[i] * qtree.botright.cost_to_parent
 
 def positive_flow(qtree, k):    #return number of distributions with positive flow
@@ -407,16 +412,16 @@ def push_flow(qtree, cost_func, k, push_mass):
 
     if qtree.min_cost_child == None:
         # if is_leaf(qtree):
-        #     cost -= push_mass * cost_func(qtree.square.x, qtree.square.points[0].x, 
-        #                                   qtree.square.y, qtree.square.points[0].y)
+        #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
+        #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree, k)
         qtree.mass = push_mass
-        barycenter[(qtree.square.x, qtree.square.y)] = qtree.mass
+        barycenter[(qtree.x, qtree.y)] = qtree.mass
         for i in range(k):
             qtree.flow[i] -= push_mass
         k1 = positive_flow(qtree, k)
         qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
         return
-    
+
     push_flow(qtree.min_cost_child, cost_func, k, push_mass)
 
     for i in range(k):
@@ -433,7 +438,7 @@ def push_flow(qtree, cost_func, k, push_mass):
 #     if qtree == None:
 #         return
 #     if qtree.mass > 0:
-#         barycenter[(qtree.square.x, qtree.square.y)] = qtree.mass
+#         barycenter[(qtree.x, qtree.y)] = qtree.mass
 #     get_barycenter(qtree.topleft)
 #     get_barycenter(qtree.topright)
 #     get_barycenter(qtree.botleft)
@@ -441,6 +446,7 @@ def push_flow(qtree, cost_func, k, push_mass):
 
 def compute_barycenter(qtree, cost_func, k):
     global cost
+
     initialize(qtree, cost_func, k)
     qtree.mass = 1
     compute_augmenting_path(qtree, k)
@@ -450,4 +456,3 @@ def compute_barycenter(qtree, cost_func, k):
         qtree.mass -= qtree.augment_mass
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         cost += qtree.augment_path_cost*qtree.augment_mass
- 
