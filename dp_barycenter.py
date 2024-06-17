@@ -39,6 +39,7 @@ class quadtree:
         self.topright = None
         self.botleft = None
         self.botright = None
+        self.parent = None
         self.flow = []
         self.mass = 0
         self.min_cost_child = None
@@ -53,52 +54,68 @@ class quadtree:
 
         topleft = square(x-l/4, y+l/4, l/2)
         self.topleft = quadtree(topleft)
+        self.topleft.parent = self
 
         topright = square(x+l/4, y+l/4, l/2)
         self.topright = quadtree(topright)
+        self.topright.parent = self
 
         botleft = square(x-l/4, y-l/4, l/2)
         self.botleft = quadtree(botleft)
+        self.botleft.parent = self
 
         botright = square(x+l/4, y-l/4, l/2)
         self.botright = quadtree(botright)
+        self.botright.parent = self
 
         self.divided = True
 
         for point in self.square.points:
-            self.topleft.insert(point)
-            self.topright.insert(point)
-            self.botleft.insert(point)
-            self.botright.insert(point)
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
 
         self.square.points = []
 
     def insert(self, point):
-        #insert a point into the quadtree
+        #insert a point into the quadtree starting at root
         if not self.square.contains(point):
-            return False
+            return None
         elif self.divided:
-            result = self.topleft.insert(point)
-            if not result:
-                result = result or self.topright.insert(point)
-            if not result:
-                result = result or self.botleft.insert(point)
-            if not result:
-                result = result or self.botright.insert(point)
-            return True
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
+            return leaf
         elif len(self.square.points) == 0:
             self.square.points.append(point)
-            return True
+            return self
         else:
             self.subdivide()
-            result = self.topleft.insert(point)
-            if not result:
-                result = result or self.topright.insert(point)
-            if not result:
-                result = result or self.botleft.insert(point)
-            if not result:
-                result = result or self.botright.insert(point)
-            return True
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
+            return leaf
+
+    def backward_insert(self, point):
+        #insert a point into the quadtree bottom-up recursively starting at leaf
+
+        leaf = self.insert(point)
+        if leaf == None:
+            return self.parent.backward_insert(point)
+        
+        return leaf
 
     def killemptychildren(self):
         #get rid of any cells that do not have points inisde
@@ -264,6 +281,12 @@ def getboundingbox(lstofpts):
     length = max(maxx-minx, maxy-miny)
 
     return centerx, centery, length
+
+def insert_list(qtree, points):
+    #insert a list of points into the quadtree
+    q = qtree
+    for p in points:
+        q = q.backward_insert(p)
 
 def is_leaf(qtree):
     #returns true if node is leaf
