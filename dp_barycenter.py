@@ -403,15 +403,18 @@ def compute_augmenting_path(qtree, k):
     update_augment_mass(qtree, k)
 
 def push_flow(qtree, cost_func, k, push_mass):
+    global barycenter
+
     if qtree.min_cost_child == None:
+        # if is_leaf(qtree):
+        #     cost -= push_mass * cost_func(qtree.square.x, qtree.square.points[0].x, 
+        #                                   qtree.square.y, qtree.square.points[0].y)
         qtree.mass = push_mass
+        barycenter[(qtree.square.x, qtree.square.y)] = qtree.mass
         for i in range(k):
             qtree.flow[i] -= push_mass
         k1 = positive_flow(qtree, k)
         qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-        # if is_leaf(qtree):
-        #     cost -= push_mass * cost_func(qtree.square.x, qtree.square.points[0].x, 
-        #                                   qtree.square.y, qtree.square.points[0].y)
         return
     
     push_flow(qtree.min_cost_child, cost_func, k, push_mass)
@@ -424,17 +427,17 @@ def push_flow(qtree, cost_func, k, push_mass):
     minimize_path_cost(qtree)
     update_augment_mass(qtree, k)
 
-def get_barycenter(qtree):
-    global barycenter
+# def get_barycenter(qtree):
+#     global barycenter
     
-    if qtree == None:
-        return
-    if qtree.mass > 0:
-        barycenter[(qtree.square.x, qtree.square.y)] = qtree.mass
-    get_barycenter(qtree.topleft)
-    get_barycenter(qtree.topright)
-    get_barycenter(qtree.botleft)
-    get_barycenter(qtree.botright)
+#     if qtree == None:
+#         return
+#     if qtree.mass > 0:
+#         barycenter[(qtree.square.x, qtree.square.y)] = qtree.mass
+#     get_barycenter(qtree.topleft)
+#     get_barycenter(qtree.topright)
+#     get_barycenter(qtree.botleft)
+#     get_barycenter(qtree.botright)
 
 def compute_barycenter(qtree, cost_func, k):
     global cost
@@ -447,6 +450,4 @@ def compute_barycenter(qtree, cost_func, k):
         qtree.mass -= qtree.augment_mass
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         cost += qtree.augment_path_cost*qtree.augment_mass
-    
-    get_barycenter(qtree)
  
