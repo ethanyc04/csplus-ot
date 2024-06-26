@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 class point:
 
@@ -51,6 +52,9 @@ class quadtree:
         self.augment_cost = 0
         self.augment_path_cost = 0
         self.augment_mass = 0
+
+    def __repr__(self):
+        return f'{{"x": {self.x}, "y": {self.y}, "l": {self.l}}}'
 
     def contains(self, point):
         # checks if point falls within a cell
@@ -151,9 +155,12 @@ class quadtree:
         
 
     def printsub(self):
+        print(self)
+        print(self.augment_path_cost)
         if self.divided is False and len(self.points) > 0:
-            print((self.x, self.y, self.l))
-            print(self.points)
+            # print((self.x, self.y, self.l))
+            # print(self.points)
+            pass
         else:
             if self.topleft is not None:
                 self.topleft.printsub()
@@ -308,6 +315,20 @@ cost = 0
 def euclidean_dist(x1, x2, y1, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
+def positive_flow(qtree):    #return number of distributions with positive flow
+    n = 0      
+    for f in qtree.flow:
+        if f > 0.000000000000001:
+            n+=1
+    return n
+
+def negative_flow(qtree):    #return number of distributions with negative flow
+    n = 0      
+    for f in qtree.flow:
+        if f < -0.000000000000001:
+            n+=1
+    return n
+
 
 def initialize(qtree, cost_func, k):
     global cost
@@ -315,50 +336,32 @@ def initialize(qtree, cost_func, k):
         return
     if is_leaf(qtree):
         pt = qtree.points[0]
-        for m in pt.data:
-            qtree.flow.append(m)
-            cost += m* cost_func(pt.x, qtree.x, pt.y, qtree.y)
+        qtree.flow = np.array(pt.data)
+        # for m in pt.data:
+        #     cost += m* cost_func(pt.x, qtree.x, pt.y, qtree.y)
         return
     
     initialize(qtree.topleft, cost_func, k)
     initialize(qtree.topright, cost_func, k)
     initialize(qtree.botleft, cost_func, k)
     initialize(qtree.botright, cost_func, k)
-    qtree.flow = [0 for x in range(k)]
+    qtree.flow = np.zeros(k)
     if qtree.topleft != None:
-        for i in range(k):
-            qtree.flow[i] += qtree.topleft.flow[i]
-            qtree.topleft.cost_to_parent = cost_func(qtree.x, qtree.topleft.x, qtree.y, qtree.topleft.y)
-            cost += qtree.topleft.flow[i] * qtree.topleft.cost_to_parent
+        qtree.flow += qtree.topleft.flow
+        qtree.topleft.cost_to_parent = cost_func(qtree.x, qtree.topleft.x, qtree.y, qtree.topleft.y)
+        cost += np.sum(qtree.topleft.flow * qtree.topleft.cost_to_parent)
     if qtree.topright != None:
-        for i in range(k):
-            qtree.flow[i] += qtree.topright.flow[i]
-            qtree.topright.cost_to_parent = cost_func(qtree.x, qtree.topright.x, qtree.y, qtree.topright.y)
-            cost += qtree.topright.flow[i] * qtree.topright.cost_to_parent
+        qtree.flow += qtree.topright.flow
+        qtree.topright.cost_to_parent = cost_func(qtree.x, qtree.topright.x, qtree.y, qtree.topright.y)
+        cost += np.sum(qtree.topright.flow * qtree.topright.cost_to_parent)
     if qtree.botleft != None:
-        for i in range(k):
-            qtree.flow[i] += qtree.botleft.flow[i]
-            qtree.botleft.cost_to_parent = cost_func(qtree.x, qtree.botleft.x, qtree.y, qtree.botleft.y)
-            cost += qtree.botleft.flow[i] * qtree.botleft.cost_to_parent
+        qtree.flow += qtree.botleft.flow
+        qtree.botleft.cost_to_parent = cost_func(qtree.x, qtree.botleft.x, qtree.y, qtree.botleft.y)
+        cost += np.sum(qtree.botleft.flow * qtree.botleft.cost_to_parent)
     if qtree.botright != None:
-        for i in range(k):
-            qtree.flow[i] += qtree.botright.flow[i]
-            qtree.botright.cost_to_parent = cost_func(qtree.x, qtree.botright.x, qtree.y, qtree.botright.y)
-            cost += qtree.botright.flow[i] * qtree.botright.cost_to_parent
-
-def positive_flow(qtree, k):    #return number of distributions with positive flow
-    n = 0      
-    for f in qtree.flow:
-        if f > 0.000000000000001:
-            n+=1
-    return n
-
-def negative_flow(qtree, k):    #return number of distributions with negative flow
-    n = 0      
-    for f in qtree.flow:
-        if f < -0.000000000000001:
-            n+=1
-    return n
+        qtree.flow += qtree.botright.flow
+        qtree.botright.cost_to_parent = cost_func(qtree.x, qtree.botright.x, qtree.y, qtree.botright.y)
+        cost += np.sum(qtree.botright.flow * qtree.botright.cost_to_parent)
 
 def minimize_path_cost(qtree):
     qtree.augment_path_cost = 0
@@ -382,16 +385,16 @@ def minimize_path_cost(qtree):
         if c < qtree.augment_path_cost:
             qtree.augment_path_cost = c
             qtree.min_cost_child = qtree.topright
+    
 
 def update_augment_mass(qtree, k):
     qtree.augment_mass = 0
     if qtree.augment_path_cost < 0:
-        min_flow = float("inf")
-        for i in range(k):
-            f = qtree.min_cost_child.flow[i]
-            if f > 0.000000000000001:
-                if f < min_flow:
-                    min_flow = f
+        mask = np.where(qtree.min_cost_child.flow > 0.000000000000001)
+        nonzero_flow = qtree.min_cost_child.flow[mask]
+        if len(nonzero_flow) == 0:
+            return
+        min_flow = np.min(nonzero_flow)
         if qtree.min_cost_child.augment_mass == 0:
             qtree.augment_mass = min_flow
         else:
@@ -401,7 +404,7 @@ def compute_augmenting_path(qtree, k):
     if qtree == None:
         return
     if is_leaf(qtree):
-        k1 = positive_flow(qtree, k)      # number of distributions with positive flow
+        k1 = len(np.where(qtree.flow > 0.000000000000001)[0])     # number of distributions with positive flow
         qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
         return
     
@@ -410,7 +413,7 @@ def compute_augmenting_path(qtree, k):
     compute_augmenting_path(qtree.topleft, k)
     compute_augmenting_path(qtree.topright, k)
 
-    k1 = positive_flow(qtree, k)      # number of distributions with positive flow
+    k1 = len(np.where(qtree.flow > 0.000000000000001)[0])      # number of distributions with positive flow
     qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
     minimize_path_cost(qtree)
     update_augment_mass(qtree, k)
@@ -421,20 +424,18 @@ def push_flow(qtree, cost_func, k, push_mass):
     if qtree.min_cost_child == None:
         # if is_leaf(qtree):
         #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
-        #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree, k)
+        #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree)
         qtree.mass = push_mass
         barycenter[(qtree.x, qtree.y)] = qtree.mass
-        for i in range(k):
-            qtree.flow[i] -= push_mass
-        k1 = positive_flow(qtree, k)
+        qtree.flow -= push_mass
+        k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
         qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
         return
 
     push_flow(qtree.min_cost_child, cost_func, k, push_mass)
 
-    for i in range(k):
-        qtree.flow[i] -= push_mass
-    k1 = positive_flow(qtree, k)
+    qtree.flow -= push_mass
+    k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
     qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
     qtree.min_cost_child = None
     minimize_path_cost(qtree)
@@ -464,6 +465,8 @@ def compute_barycenter(qtree, cost_func, k):
         qtree.mass -= qtree.augment_mass
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         cost += qtree.augment_path_cost*qtree.augment_mass
+    if qtree.mass > 0.00000000000001:
+        barycenter[(qtree.x, qtree.y)] = qtree.mass
 
 
 def find_new_root(qtree):
@@ -484,18 +487,33 @@ def find_new_root(qtree):
 
 
 def DFS_dual_weights(new, parent, cost_func, k):
-    edgecost = cost_func(new, parent)
-    new.dualweight = [0 for i in range(k)]
-    k1 = positive_flow(new, k)
-    k1rev = negative_flow(new, k)
-    alpha = (k1 - k1rev)*edgecost
-    for i in range(k):
-        if new.flow[i] > 0:
-            new.dualweight[i] = parent.dualweight[i] + edgecost
-        elif new.flow[i] < 0:
-            new.dualweight[i] = parent.dualweight[i] - edgecost
-        else:
-            new.dualweight[i] = parent.dualweight[i] + min(edgecost, (parent.dualweight[i] + new.augment_path_cost - alpha)/(k-k1))
+    if parent != None and new.parent != parent:
+        edgecost = cost_func(new.x, parent.x, new.y, parent.y)
+        new.dualweight = [0 for i in range(k)]
+        k1 = negative_flow(parent)
+        k1rev = positive_flow(parent)
+        alpha = (k1 - k1rev)*edgecost
+        for i in range(k):
+            if parent.flow[i] < -.00000000000001:
+                new.dualweight[i] = parent.dualweight[i] + edgecost
+            elif parent.flow[i] > 0.0000000000001:
+                new.dualweight[i] = parent.dualweight[i] - edgecost
+            else:
+                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+    elif parent != None:
+        edgecost = cost_func(new.x, parent.x, new.y, parent.y)
+        new.dualweight = [0 for i in range(k)]
+        k1 = positive_flow(new)
+        k1rev = negative_flow(new)
+        alpha = (k1 - k1rev)*edgecost
+
+        for i in range(k):
+            if new.flow[i] > .00000000000001:
+                new.dualweight[i] = parent.dualweight[i] + edgecost
+            elif new.flow[i] < -.00000000000001:
+                new.dualweight[i] = parent.dualweight[i] - edgecost
+            else:
+                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
 
     if new.topleft != None and new.topleft != parent:
         DFS_dual_weights(new.topleft, new, cost_func, k)
@@ -510,10 +528,13 @@ def DFS_dual_weights(new, parent, cost_func, k):
 
 
 def recompute_cstar(new, parent, cost_func, k):
+
     if is_leaf(new) and parent != None:
         k1 = positive_flow(new)
         new.augment_path_cost = 0
-        new.augment_cost = (k-k1)*cost_func(new, parent)
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
+        return
+
     if new.topleft != None and new.topleft != parent:
         recompute_cstar(new.topleft, new, cost_func, k)
     if new.topright != None and new.topright != parent:
@@ -525,13 +546,12 @@ def recompute_cstar(new, parent, cost_func, k):
     if new.parent != None and new.parent != parent:
         recompute_cstar(new.parent, new, cost_func, k)
 
-    
-    if parent == new.parent:
+    if parent == new.parent and parent != None:
         k1 = positive_flow(new)
-    else:
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
+    elif parent != None:
         k1 = negative_flow(parent)
-
-    new.augment_cost = (k-2*k1)*cost_func(new,parent)
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
 
     new.augment_path_cost = 0
     if new.botleft != None and new.botleft != parent:
@@ -555,10 +575,14 @@ def recompute_cstar(new, parent, cost_func, k):
         if c < new.augment_path_cost:
             new.augment_path_cost = c
 
+dualweightsum = 0
 def printdualweights(qtree):
+    global dualweightsum
     if is_leaf(qtree):
-        print(qtree.dualweight)
-    print(qtree.dualweight)
+        for i in range(len(qtree.dualweight)):
+            dualweightsum += qtree.dualweight[i]*qtree.points[0].data[i]
+
+    #print(qtree.augment_path_cost)
     if qtree.topleft != None:
         printdualweights(qtree.topleft)
     if qtree.topright != None:
@@ -574,6 +598,76 @@ def compute_dual_weights(qtree, cost_func, k):
     newroot.dualweight = [0 for i in range(k)]
     recompute_cstar(newroot, None, cost_func, k)
     DFS_dual_weights(newroot, None, cost_func, k)
+
+# cost = 0
+# barycenter = {}
+
+# qtree = quadtree(0, 0, 4)
+# qtree.insert(point(1, 1.25, [1.0, 0, 1.0]))
+# qtree.insert(point(-1, -1.25, [0, 1.0, 0]))
+# qtree.killemptychildren()
+
+# compute_barycenter(qtree, euclidean_dist, 3)
+# print("COST", cost)
+# print(barycenter)
+# #qtree.printsub()
+# compute_dual_weights(qtree, euclidean_dist, 3)
+# printdualweights(qtree)
+# print(dualweightsum)
+    
+
+#test on mnist zeros
+
+def normalize_image(im):
+    s = np.sum(im)
+    normalized_im = im/s
+    return normalized_im
+
+def images_to_points(images):
+    points = []
+    m = 0
+    n = 0
+    for im in images:
+        if im.shape[0] > m:
+            m = im.shape[0]
+        if im.shape[1] > n:
+            n = im.shape[1]
+
+    for i in range(len(images)):
+        row_diff = m - images[i].shape[0]
+        col_diff = n - images[i].shape[1]
+        images[i] = np.pad(images[i], ((math.floor(row_diff/2), math.ceil(row_diff/2)), (math.floor(col_diff/2), math.ceil(col_diff/2))),
+                    'constant', constant_values=0)
+
+    for i in range(m):
+        for j in range(n):
+            p = point(i, j, [im[i][j] for im in images])
+            points.append(p)
+            
+    return points, (m, n)
+
+import glob
+from PIL import Image
+zero_images = []
+for filename in glob.glob('testing images/mnist_zeros/*.png'): 
+    im = np.array(Image.open(filename))
+    normalized_im = normalize_image(im)
+    zero_images.append(normalized_im)
+zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+
+cost = 0
+barycenter = {}
+mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
+mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
+insert_list(mnist_qtree, zero_image_points)
+# for p in zero_image_points:
+#     mnist_qtree0.insert(p)
+mnist_qtree.killemptychildren()
+compute_barycenter(mnist_qtree, euclidean_dist, 3)
+print(cost)
+compute_dual_weights(mnist_qtree, euclidean_dist, 3)
+printdualweights(mnist_qtree)
+print(dualweightsum)
     
 
             
