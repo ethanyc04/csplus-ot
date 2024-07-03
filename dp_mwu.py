@@ -712,6 +712,43 @@ def construct_spanner(qtree, epsilon, spread, level, d):
     if level <= math.log2(spread):
         const = qtree.length*epsilon/(2*d*math.log2(spread))
         traverse_tree(qtree, const)
+    else:
+        construct_spanner(qtree.topleft, epsilon, spread, level - 1, d)
+        if spanner.isempty():
+            construct_spanner(qtree.topright, epsilon, spread, level - 1, d)
+        if spanner.isempty():
+            construct_spanner(qtree.botleft, epsilon, spread, level - 1, d)
+        if spanner.isempty():
+            construct_spanner(qtree.botright, epsilon, spread, level - 1, d)
+
+
+def get_leafs(qtree):
+    global leafnodes
+    if is_leaf(qtree):
+        leafnodes.append(qtree)
+        return
+    if qtree.botleft != None:
+        get_leafs(qtree.botleft)
+    if qtree.botright != None:
+        get_leafs(qtree.botright)
+    if qtree.topleft != None:
+        get_leafs(qtree.topleft)
+    if qtree.topright != None:
+        get_leafs(qtree.topright)
+
+global leafnodes
+def spanner_with_images(qtree):
+    global edgesdict
+    global leafnodes
+    get_leafs(qtree)
+    for u in leafnodes:
+        if u not in edgesdict:
+            edgesdict[u.id] = []
+        for v in leafnodes:
+            if u != v:
+                edgesdict[u.id].append(v.id)
+
+
 
 def construct_adjacency_matrix(k):
     global edgesdict
