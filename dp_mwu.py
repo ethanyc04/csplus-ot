@@ -52,6 +52,7 @@ class quadtree:
         self.augment_cost = 0
         self.augment_path_cost = 0
         self.augment_mass = 0
+        self.id = None
 
     def __repr__(self):
         return f'{{"x": {self.x}, "y": {self.y}, "l": {self.l}}}'
@@ -646,28 +647,134 @@ def images_to_points(images):
             
     return points, (m, n)
 
-import glob
-from PIL import Image
-zero_images = []
-for filename in glob.glob('testing images/mnist_zeros/*.png'): 
-    im = np.array(Image.open(filename))
-    normalized_im = normalize_image(im)
-    zero_images.append(normalized_im)
-zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+id = 0
+iddict = {}
+def id_nodes(qtree):
+    #requires global id counter and id dictionary
+    global id
+    global iddict
+    qtree.id = id
+    iddict[id] = qtree
+    id += 1
+    if qtree.botleft != None:
+        id_nodes(qtree.botleft)
+    if qtree.botright != None:
+        id_nodes(qtree.botright)
+    if qtree.topleft != None:
+        id_nodes(qtree.topleft)
+    if qtree.topright != None:
+        id_nodes(qtree.topright)
 
-cost = 0
-barycenter = {}
-mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
-mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
-insert_list(mnist_qtree, zero_image_points)
-# for p in zero_image_points:
-#     mnist_qtree0.insert(p)
-mnist_qtree.killemptychildren()
-compute_barycenter(mnist_qtree, euclidean_dist, 3)
-print(cost)
-compute_dual_weights(mnist_qtree, euclidean_dist, 3)
-printdualweights(mnist_qtree)
-print(dualweightsum)
+
+# import glob
+# from PIL import Image
+# zero_images = []
+# for filename in glob.glob('testing images/mnist_zeros/*.png'): 
+#     im = np.array(Image.open(filename))
+#     normalized_im = normalize_image(im)
+#     zero_images.append(normalized_im)
+# zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+
+# cost = 0
+# barycenter = {}
+# mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
+# mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
+# insert_list(mnist_qtree, zero_image_points)
+# # for p in zero_image_points:
+# #     mnist_qtree0.insert(p)
+# mnist_qtree.killemptychildren()
+# compute_barycenter(mnist_qtree, euclidean_dist, 3)
+# print(cost)
+# compute_dual_weights(mnist_qtree, euclidean_dist, 3)
+# printdualweights(mnist_qtree)
+# print(dualweightsum)
+
+edgesdict = {}
+def traverse_tree(qtree, const, id):
+    global spanner
+    if qtree.length <= const:
+        if qtree.length not in spanner:
+            spanner[qtree.length] = []
+        spanner[qtree.length].append(qtree)
+    
+    if qtree.botleft != None:
+        traverse_tree(qtree.botleft, const)
+    if qtree.botright != None:
+        traverse_tree(qtree.botright, const)
+    if qtree.topleft != None:
+        traverse_tree(qtree.topleft, const)
+    if qtree.topright != None:
+        traverse_tree(qtree.topright, const)
+
+
+global spanner
+def construct_spanner(qtree, epsilon, spread, level, d):
+    if level <= math.log2(spread):
+        const = qtree.length*epsilon/(2*d*math.log2(spread))
+        traverse_tree(qtree, const)
+
+def construct_adjacency_matrix(k):
+    global edgesdict
+    global adjacency_matrix
+    numnodes = len(edgesdict.keys())
+    adjacency_matrix = [[[] for y in range(numnodes)] for y in range(numnodes)]
+    for u in edgesdict:
+        for v in edgesdict[u]:
+            adjacency_matrix[u][v] = [0 for i in range(k)]
+
+# edgesdict = {0:[2], 1:[0,2], 2:[0,1]}
+# construct_adjacency_matrix(5)
+# print(adjacency_matrix)
+            
+def getbc(qtree, adjacency_matrix):
+    pass
+
+
+def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
+    global cost
+    global edgesdict
+    global adjacency_matrix
+    global dualweights
+
+    gstar = cost
+    g = gstar/math.log2(spread)
+    t = 8*((math.log2(spread))**2)*math.log2(k*numedges)
+
+    matchingfound = False
+    while not matchingfound and g <= gstar:
+        for u in edgesdict:
+            for v in edgesdict[u]:
+                for i in range(k):
+                    adjacency_matrix[u][v][k] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+                                                                                                                                        
+        for i in range(t):
+            newpts = ptlist.deepcopy()
+            for pt in newpts:
+                id = iddict[pt]
+                flowsums = [0 for i in range(k)]
+                for v in edgesdict[id]:
+                    flowsums += (adjacency_matrix[id][v]-adjacency_matrix[v][id])
+
+            newqtree = qtree(boundingbox)
+            newqtree.insert_list(newpts)
+            cost = 0
+            compute_barycenter(newqtree, cost_func, k)
+            if cost <= epsilon*g:
+                getbc(qtree, adjacency_matrix)
+                return
+            else:
+                for u in edgesdict:
+                    for v in edgesdict[u]:
+                        for i in range(k):
+                            adjacency_matrix[u][v][k] = adjacency_matrix[u][v][k]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+            
+
+        g = (1+epsilon)*g
+
+    return
+
+    
+    
     
 
             
