@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import copy
 
 class point:
 
@@ -127,6 +128,12 @@ class quadtree:
             return self.parent.backward_insert(point)
         
         return leaf
+    
+    def insert_list(qtree, points):
+        #insert a list of points into the quadtree
+        q = qtree
+        for p in points:
+            q = q.backward_insert(p)
 
     def killemptychildren(self):
         #get rid of any cells that do not have points inisde
@@ -488,6 +495,7 @@ def find_new_root(qtree):
 
 
 def DFS_dual_weights(new, parent, cost_func, k):
+    global dualweights
     if parent != None and new.parent != parent:
         edgecost = cost_func(new.x, parent.x, new.y, parent.y)
         new.dualweight = [0 for i in range(k)]
@@ -501,6 +509,7 @@ def DFS_dual_weights(new, parent, cost_func, k):
                 new.dualweight[i] = parent.dualweight[i] - edgecost
             else:
                 new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        dualweights[new.id] = new.dualweight
     elif parent != None:
         edgecost = cost_func(new.x, parent.x, new.y, parent.y)
         new.dualweight = [0 for i in range(k)]
@@ -515,6 +524,7 @@ def DFS_dual_weights(new, parent, cost_func, k):
                 new.dualweight[i] = parent.dualweight[i] - edgecost
             else:
                 new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        dualweights[new.id] = new.dualweight
 
     if new.topleft != None and new.topleft != parent:
         DFS_dual_weights(new.topleft, new, cost_func, k)
@@ -595,8 +605,10 @@ def printdualweights(qtree):
 
 
 def compute_dual_weights(qtree, cost_func, k):
+    global dualweights
     newroot = find_new_root(qtree)
     newroot.dualweight = [0 for i in range(k)]
+    dualweights[newroot.id] = newroot.dualweight
     recompute_cstar(newroot, None, cost_func, k)
     DFS_dual_weights(newroot, None, cost_func, k)
 
@@ -647,14 +659,15 @@ def images_to_points(images):
             
     return points, (m, n)
 
-id = 0
-iddict = {}
+
 def id_nodes(qtree):
     #requires global id counter and id dictionary
     global id
     global iddict
     qtree.id = id
     iddict[id] = qtree
+    if len(qtree.points) != 0:
+        iddict[(qtree.points[0].x, qtree.points[0].y)] = qtree
     id += 1
     if qtree.botleft != None:
         id_nodes(qtree.botleft)
@@ -690,7 +703,7 @@ def id_nodes(qtree):
 # print(dualweightsum)
 
 edgesdict = {}
-def traverse_tree(qtree, const, id):
+def traverse_tree_spanner(qtree, const, id):
     global spanner
     if qtree.length <= const:
         if qtree.length not in spanner:
@@ -698,20 +711,20 @@ def traverse_tree(qtree, const, id):
         spanner[qtree.length].append(qtree)
     
     if qtree.botleft != None:
-        traverse_tree(qtree.botleft, const)
+        traverse_tree_spanner(qtree.botleft, const)
     if qtree.botright != None:
-        traverse_tree(qtree.botright, const)
+        traverse_tree_spanner(qtree.botright, const)
     if qtree.topleft != None:
-        traverse_tree(qtree.topleft, const)
+        traverse_tree_spanner(qtree.topleft, const)
     if qtree.topright != None:
-        traverse_tree(qtree.topright, const)
+        traverse_tree_spanner(qtree.topright, const)
 
 
 global spanner
 def construct_spanner(qtree, epsilon, spread, level, d):
     if level <= math.log2(spread):
         const = qtree.length*epsilon/(2*d*math.log2(spread))
-        traverse_tree(qtree, const)
+        traverse_tree_spanner(qtree, const)
     else:
         construct_spanner(qtree.topleft, epsilon, spread, level - 1, d)
         if spanner.isempty():
@@ -740,21 +753,55 @@ global leafnodes
 def spanner_with_images(qtree):
     global edgesdict
     global leafnodes
+    global numedges
     get_leafs(qtree)
+    add_tree_edges(qtree)
     for u in leafnodes:
-        if u not in edgesdict:
-            edgesdict[u.id] = []
+        if u.id not in edgesdict:
+            edgesdict[u.id] = set([])
         for v in leafnodes:
             if u != v:
-                edgesdict[u.id].append(v.id)
+                numedges += 1
+                edgesdict[u.id].add(v.id)
 
 
+def add_tree_edges(qtree):
+    global edgesdict
+    global numedges
+    if qtree.parent != None:
 
-def construct_adjacency_matrix(k):
+        if qtree.id not in edgesdict:
+            edgesdict[qtree.id] = set([])
+        if qtree.parent.id not in edgesdict:
+            edgesdict[qtree.parent.id] = set([])
+        edgesdict[qtree.id].add(qtree.parent.id)
+        edgesdict[qtree.parent.id].add(qtree.id)
+        numedges += 2
+
+    if is_leaf(qtree):
+        return
+    if qtree.botleft != None:
+        add_tree_edges(qtree.botleft)
+    if qtree.botright != None:
+        add_tree_edges(qtree.botright)
+    if qtree.topleft != None:
+        add_tree_edges(qtree.topleft)
+    if qtree.topright != None:
+        add_tree_edges(qtree.topright)
+
+def construct_dualweights_dict(qtree):
+    global dualweights
+    dualweights[qtree.id] = qtree.dualweight
+
+    
+
+
+def construct_adjacency_matrix(qtree, k):
     global edgesdict
     global adjacency_matrix
+    spanner_with_images(qtree)
     numnodes = len(edgesdict.keys())
-    adjacency_matrix = [[[] for y in range(numnodes)] for y in range(numnodes)]
+    adjacency_matrix = [[[] for y in range(numnodes)] for z in range(numnodes)]
     for u in edgesdict:
         for v in edgesdict[u]:
             adjacency_matrix[u][v] = [0 for i in range(k)]
@@ -763,8 +810,27 @@ def construct_adjacency_matrix(k):
 # construct_adjacency_matrix(5)
 # print(adjacency_matrix)
             
-def getbc(qtree, adjacency_matrix):
-    pass
+def getbc(qtree, k):
+    global barycenter
+    global edgesdict
+    global adjacency_matrix
+    flowsums = [0 for i in range(k)]
+    for u in edgesdict[qtree.id]:
+        for i in range(k):
+            flowsums[i] += (adjacency_matrix[u][qtree.id][i] - adjacency_matrix[qtree.id][u][i])
+    print(flowsums)
+    if qtree.botleft != None:
+        getbc(qtree.botleft, k)
+    if qtree.botright != None:
+        getbc(qtree.botright, k)
+    if qtree.topleft != None:
+        getbc(qtree.topleft, k)
+    if qtree.topright != None:
+        getbc(qtree.topright, k)
+
+
+
+    
 
 
 def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
@@ -782,28 +848,35 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
         for u in edgesdict:
             for v in edgesdict[u]:
                 for i in range(k):
-                    adjacency_matrix[u][v][k] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+                    adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))#*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
                                                                                                                                         
-        for i in range(t):
-            newpts = ptlist.deepcopy()
+        for i in range(math.ceil(t)):
+            newpts = copy.deepcopy(ptlist)
             for pt in newpts:
-                id = iddict[pt]
-                flowsums = [0 for i in range(k)]
+                id = iddict[(pt.x, pt.y)].id
+                leftovermass = [0 for i in range(k)]
                 for v in edgesdict[id]:
-                    flowsums += (adjacency_matrix[id][v]-adjacency_matrix[v][id])
+                    for z in range(k):
+                        leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
+                for y in range(k):
+                    leftovermass[y] = pt.data[y] - leftovermass[y]
+                pt.data = leftovermass
+                print(id, pt.data)
 
-            newqtree = qtree(boundingbox)
+            newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
             newqtree.insert_list(newpts)
             cost = 0
+            newqtree.killemptychildren()
             compute_barycenter(newqtree, cost_func, k)
             if cost <= epsilon*g:
-                getbc(qtree, adjacency_matrix)
+                print(cost)
+                getbc(qtree, k)
                 return
             else:
                 for u in edgesdict:
                     for v in edgesdict[u]:
                         for i in range(k):
-                            adjacency_matrix[u][v][k] = adjacency_matrix[u][v][k]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+                            adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
             
 
         g = (1+epsilon)*g
@@ -811,6 +884,35 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
     return
 
     
+cost = 0
+barycenter = {}
+
+id = 0
+iddict = {}
+dualweights = {}
+
+numedges = 0
+edgesdict = {}
+adjacency_matrix = []
+leafnodes = []
+
+testqtree = quadtree(0, 0, 4)
+testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
+testqtree.insert(point(-1, -1, [0, 1.0, 0]))
+testqtree.killemptychildren()
+id_nodes(testqtree)
+
+compute_barycenter(testqtree, euclidean_dist, 3)
+# print("COST", cost)
+# print(barycenter)
+# #qtree.printsub()
+compute_dual_weights(testqtree, euclidean_dist, 3)
+# printdualweights(qtree)
+# print(dualweightsum)
+
+construct_adjacency_matrix(testqtree, 3)
+
+mwu(testqtree, euclidean_dist, .5, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(-1, -1, [0, 1.0, 0])], (0, 0 ,4))
     
     
 
