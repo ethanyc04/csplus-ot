@@ -435,7 +435,9 @@ def push_flow(qtree, cost_func, k, push_mass):
         #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
         #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree)
         qtree.mass = push_mass
-        barycenter[(qtree.x, qtree.y)] = qtree.mass
+        if (qtree.x, qtree.y) not in barycenter:
+            barycenter[(qtree.x, qtree.y)] = 0
+        barycenter[(qtree.x, qtree.y)] += qtree.mass
         qtree.flow -= push_mass
         k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
         qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
@@ -883,8 +885,6 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             dualweights = {}
             compute_dual_weights(newqtree, cost_func, k)
             if cost <= epsilon*g:
-                print(cost)
-                print(newcost)
                 print(barycenter)
                 newqtree.printsub()
                 # getbc(newqtree, k)
@@ -919,44 +919,27 @@ edgesdict = {}
 adjacency_matrix = []
 leafnodes = []
 
-# testqtree = quadtree(0, 0, 4)
-# testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
-# testqtree.insert(point(1, -1, [0, 1.0, 0]))
-# testqtree.killemptychildren()
-# id_nodes(testqtree)
-# testqtree.printsub()
-
-# compute_barycenter(testqtree, euclidean_dist, 3)
-# # print("COST", cost)
-# # print(barycenter)
-# # #qtree.printsub()
-# compute_dual_weights(testqtree, euclidean_dist, 3)
-# # printdualweights(qtree)
-# # print(dualweightsum)
-# print(dualweights)
-
-# construct_adjacency_matrix(testqtree, 3)
-
-# mwu(testqtree, euclidean_dist, .2, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(1, -1, [0, 1.0, 0])], (0, 0 ,4))
-
-
 testqtree = quadtree(0, 0, 4)
-testqtree.insert(point(1, 1, [0.7106547513959407, 0.5883077126152989, 0.7106547513959407]))
-testqtree.insert(point(1, -1, [0.2893452486040593, 0.4116922873847011, 0.2893452486040593]))
+testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
+testqtree.insert(point(1, -1, [0, 1.0, 0]))
 testqtree.killemptychildren()
+id_nodes(testqtree)
+testqtree.printsub()
 
 compute_barycenter(testqtree, euclidean_dist, 3)
-print(cost)
-print(barycenter)
+# print("COST", cost)
+# print(barycenter)
+# #qtree.printsub()
+compute_dual_weights(testqtree, euclidean_dist, 3)
+# printdualweights(qtree)
+# print(dualweightsum)
+print(dualweights)
 
-testqtree = quadtree(0, 0, 4)
-testqtree.insert(point(1, 1, [0.6, 0.5, 0.6]))
-testqtree.insert(point(1, -1, [0.4, 0.5, 0.4]))
-testqtree.killemptychildren()
+construct_adjacency_matrix(testqtree, 3)
 
-compute_barycenter(testqtree, euclidean_dist, 3)
-print(cost)
-print(barycenter)
+mwu(testqtree, euclidean_dist, .2, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(1, -1, [0, 1.0, 0])], (0, 0 ,4))
+
+
     
     
 

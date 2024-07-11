@@ -415,7 +415,10 @@ def push_flow(qtree, cost_func, k, push_mass):
         #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
         #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree, k)
         qtree.mass = push_mass
-        barycenter[(qtree.x, qtree.y)] = qtree.mass
+        if (qtree.x, qtree.y) not in barycenter:
+            barycenter[(qtree.x, qtree.y)] = 0
+        barycenter[(qtree.x, qtree.y)] += qtree.mass
+
         for i in range(k):
             qtree.flow[i] -= push_mass
         k1 = positive_flow(qtree, k)
@@ -456,3 +459,23 @@ def compute_barycenter(qtree, cost_func, k):
         qtree.mass -= qtree.augment_mass
         push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
         cost += qtree.augment_path_cost*qtree.augment_mass
+
+testqtree = quadtree(0, 0, 4)
+testqtree.insert(point(1, 1, [0.7106547513959407, 0.5883077126152989, 0.7106547513959407]))
+testqtree.insert(point(1, -1, [0.2893452486040593, 0.4116922873847011, 0.2893452486040593]))
+testqtree.killemptychildren()
+
+compute_barycenter(testqtree, euclidean_dist, 3)
+print(cost)
+print(barycenter)
+
+cost = 0
+barycenter = {}
+testqtree = quadtree(0, 0, 4)
+testqtree.insert(point(1, 1, [0.6, 0.5, 0.6]))
+testqtree.insert(point(1, -1, [0.4, 0.5, 0.4]))
+testqtree.killemptychildren()
+
+compute_barycenter(testqtree, euclidean_dist, 3)
+print(cost)
+print(barycenter)
