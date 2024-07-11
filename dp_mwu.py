@@ -1,6 +1,9 @@
-import math
+import matplotlib.pyplot as plt
 import numpy as np
+import math
+from PIL import Image
 import copy
+import glob
 
 class point:
 
@@ -835,6 +838,54 @@ def getbc(qtree, k):
         getbc(qtree.topright, k)
 
 
+def add_tree_flows_adjmatrix(qtree, k):
+    global adjacency_matrix
+
+    if is_leaf(qtree):
+        return
+
+    u = qtree.id
+    
+    if qtree.botleft != None:
+        add_tree_flows_adjmatrix(qtree.botleft, k)
+        v = qtree.botleft.id
+        for i in range(k):
+            if qtree.botleft.flow[i] > 0.000000000000001:
+        
+                adjacency_matrix[v][u][i] += qtree.botleft.flow[i]
+            elif qtree.botleft.flow[i] < -0.000000000000001:
+            
+                adjacency_matrix[u][v][i] -= qtree.botleft.flow[i]
+    if qtree.botright != None:
+        add_tree_flows_adjmatrix(qtree.botright, k)
+        v = qtree.botright.id
+        for i in range(k):
+            if qtree.botright.flow[i] > 0.000000000000001:
+                adjacency_matrix[v][u][i] += qtree.botright.flow[i]
+            elif qtree.botright.flow[i] < -0.000000000000001:
+                
+                adjacency_matrix[u][v][i] -= qtree.botright.flow[i]
+    if qtree.topleft != None:
+        add_tree_flows_adjmatrix(qtree.topleft, k)
+        v = qtree.topleft.id
+        for i in range(k):
+            if qtree.topleft.flow[i] > 0.000000000000001:
+                adjacency_matrix[v][u][i] += qtree.topleft.flow[i]
+            elif qtree.topleft.flow[i] < -0.000000000000001:
+                
+                adjacency_matrix[u][v][i] -= qtree.topleft.flow[i]
+    if qtree.topright != None:
+        add_tree_flows_adjmatrix(qtree.topright, k)
+        v = qtree.topright.id
+        for i in range(k):
+            if qtree.topright.flow[i] > 0.000000000000001:
+                adjacency_matrix[v][u][i] += qtree.topright.flow[i]
+            elif qtree.topright.flow[i] < -0.000000000000001:
+                
+                adjacency_matrix[u][v][i] -= qtree.topright.flow[i]
+
+    
+
 
     
 
@@ -871,7 +922,6 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                 for y in range(k):
                     leftovermass[y] = pt.data[y] - leftovermass[y]
                 pt.data = leftovermass
-                print("Leftover mass", leftovermass)
 
             newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
             newqtree.insert_list(ptlist)
@@ -884,10 +934,16 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             compute_barycenter(newqtree, cost_func, k)
             dualweights = {}
             compute_dual_weights(newqtree, cost_func, k)
+
+            add_tree_flows_adjmatrix(newqtree, k)
+
             if cost <= epsilon*g:
                 print(barycenter)
-                newqtree.printsub()
-                # getbc(newqtree, k)
+                cost = 0
+                for u in edgesdict:
+                    for v in edgesdict[u]:
+                        for i in range(k):
+                            cost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                 return
             else:
                 newcost = 0
@@ -906,6 +962,20 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
     return
 
+
+def plotbarycenter(barycenterdict, point_size, image_size):
+    coords = barycenterdict.items()
+    x = [pt[0][0] for pt in coords]
+    y = [pt[0][1] for pt in coords]
+    t = [pt[1] for pt in coords]
+    # t = np.linspace(0, 1, len(x))
+    fig, ax = plt.subplots()
+    sc = ax.scatter(y, x, c=t, marker='.', s=point_size)
+    fig.colorbar(sc, label="mass")
+    plt.xlim(0, image_size[1])
+    plt.ylim(0, image_size[0])
+    plt.gca().invert_yaxis()
+    plt.show()
     
 cost = 0
 barycenter = {}
@@ -920,11 +990,11 @@ adjacency_matrix = []
 leafnodes = []
 
 testqtree = quadtree(0, 0, 4)
-testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
-testqtree.insert(point(1, -1, [0, 1.0, 0]))
+testqtree.insert(point(1, 1, [.6, .5, .6]))
+testqtree.insert(point(1, -1, [.4, .5, .4]))
 testqtree.killemptychildren()
 id_nodes(testqtree)
-testqtree.printsub()
+# testqtree.printsub()
 
 compute_barycenter(testqtree, euclidean_dist, 3)
 # print("COST", cost)
@@ -933,13 +1003,38 @@ compute_barycenter(testqtree, euclidean_dist, 3)
 compute_dual_weights(testqtree, euclidean_dist, 3)
 # printdualweights(qtree)
 # print(dualweightsum)
-print(dualweights)
+# print(dualweights)
 
 construct_adjacency_matrix(testqtree, 3)
 
-mwu(testqtree, euclidean_dist, .2, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(1, -1, [0, 1.0, 0])], (0, 0 ,4))
+mwu(testqtree, euclidean_dist, .2, 2*math.sqrt(2), 3, numedges, [point(1, 1, [.6, .5, .6]), point(1, -1, [.4, .5, .4])], (0, 0 ,4))
+print(cost)
 
-
+# import glob
+# zero_images = []
+# for filename in glob.glob('testing images/mnist_zeros/*.png'): 
+#     im = np.array(Image.open(filename))
+#     normalized_im = normalize_image(im)
+#     zero_images.append(normalized_im)
+# zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+# print(zero_image_points[0].data)
+# cost = 0
+# barycenter = {}
+# mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
+# mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
+# insert_list(mnist_qtree, zero_image_points)
+# # for p in zero_image_points:
+# #     mnist_qtree0.insert(p)
+# mnist_qtree.killemptychildren()
+# id_nodes(mnist_qtree)
+# compute_barycenter(mnist_qtree, euclidean_dist, 3)
+# compute_dual_weights(mnist_qtree, euclidean_dist, 3)
+# construct_adjacency_matrix(mnist_qtree, 3)
+# print(cost)
+# spread = math.sqrt(28**2+28**2)
+# barycenter = {}
+# mwu(mnist_qtree, euclidean_dist, .2, spread, 3, numedges, zero_image_points,(mnist_sq_x, mnist_sq_y, mnist_sq_l))
+# plotbarycenter(barycenter, 100, zero_image_size)
     
     
 
