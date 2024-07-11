@@ -56,7 +56,7 @@ class quadtree:
         self.id = None
 
     def __repr__(self):
-        return f'{{"x": {self.x}, "y": {self.y}, "l": {self.l}}}'
+        return f'{{"x": {self.x}, "y": {self.y}, "id": {self.id}}}'
 
     def contains(self, point):
         # checks if point falls within a cell
@@ -164,7 +164,8 @@ class quadtree:
 
     def printsub(self):
         print(self)
-        print(self.augment_path_cost)
+        if len(self.points) != 0:
+            print(self.points[0].data)
         if self.divided is False and len(self.points) > 0:
             # print((self.x, self.y, self.l))
             # print(self.points)
@@ -463,6 +464,7 @@ def push_flow(qtree, cost_func, k, push_mass):
 
 def compute_barycenter(qtree, cost_func, k):
     global cost
+    global barycenter
 
     initialize(qtree, cost_func, k)
     qtree.mass = 1
@@ -815,8 +817,10 @@ def getbc(qtree, k):
     global edgesdict
     global adjacency_matrix
     flowsums = [0 for i in range(k)]
+    
     for u in edgesdict[qtree.id]:
         for i in range(k):
+
             flowsums[i] += (adjacency_matrix[u][qtree.id][i] - adjacency_matrix[qtree.id][u][i])
     print(flowsums)
     if qtree.botleft != None:
@@ -838,6 +842,10 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
     global edgesdict
     global adjacency_matrix
     global dualweights
+    global barycenter
+
+    global id
+    global iddict
 
     gstar = cost
     g = gstar/math.log2(spread)
@@ -851,8 +859,8 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                     adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))#*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
                                                                                                                                         
         for i in range(math.ceil(t)):
-            newpts = copy.deepcopy(ptlist)
-            for pt in newpts:
+            #newpts = copy.deepcopy(ptlist)
+            for pt in ptlist:
                 id = iddict[(pt.x, pt.y)].id
                 leftovermass = [0 for i in range(k)]
                 for v in edgesdict[id]:
@@ -861,22 +869,37 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                 for y in range(k):
                     leftovermass[y] = pt.data[y] - leftovermass[y]
                 pt.data = leftovermass
-                print(id, pt.data)
+                print("Leftover mass", leftovermass)
 
             newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
-            newqtree.insert_list(newpts)
+            newqtree.insert_list(ptlist)
             cost = 0
+
             newqtree.killemptychildren()
+            id = 0
+            id_nodes(newqtree)
+            barycenter = {}
             compute_barycenter(newqtree, cost_func, k)
+            dualweights = {}
+            compute_dual_weights(newqtree, cost_func, k)
             if cost <= epsilon*g:
                 print(cost)
-                getbc(qtree, k)
+                print(newcost)
+                print(barycenter)
+                newqtree.printsub()
+                # getbc(newqtree, k)
                 return
             else:
+                newcost = 0
                 for u in edgesdict:
                     for v in edgesdict[u]:
                         for i in range(k):
                             adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+                            newcost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                for u in edgesdict:
+                    for v in edgesdict[u]:
+                        for i in range(k):
+                            adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*(g/newcost)
             
 
         g = (1+epsilon)*g
@@ -896,23 +919,44 @@ edgesdict = {}
 adjacency_matrix = []
 leafnodes = []
 
+# testqtree = quadtree(0, 0, 4)
+# testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
+# testqtree.insert(point(1, -1, [0, 1.0, 0]))
+# testqtree.killemptychildren()
+# id_nodes(testqtree)
+# testqtree.printsub()
+
+# compute_barycenter(testqtree, euclidean_dist, 3)
+# # print("COST", cost)
+# # print(barycenter)
+# # #qtree.printsub()
+# compute_dual_weights(testqtree, euclidean_dist, 3)
+# # printdualweights(qtree)
+# # print(dualweightsum)
+# print(dualweights)
+
+# construct_adjacency_matrix(testqtree, 3)
+
+# mwu(testqtree, euclidean_dist, .2, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(1, -1, [0, 1.0, 0])], (0, 0 ,4))
+
+
 testqtree = quadtree(0, 0, 4)
-testqtree.insert(point(1, 1, [1.0, 0, 1.0]))
-testqtree.insert(point(-1, -1, [0, 1.0, 0]))
+testqtree.insert(point(1, 1, [0.7106547513959407, 0.5883077126152989, 0.7106547513959407]))
+testqtree.insert(point(1, -1, [0.2893452486040593, 0.4116922873847011, 0.2893452486040593]))
 testqtree.killemptychildren()
-id_nodes(testqtree)
 
 compute_barycenter(testqtree, euclidean_dist, 3)
-# print("COST", cost)
-# print(barycenter)
-# #qtree.printsub()
-compute_dual_weights(testqtree, euclidean_dist, 3)
-# printdualweights(qtree)
-# print(dualweightsum)
+print(cost)
+print(barycenter)
 
-construct_adjacency_matrix(testqtree, 3)
+testqtree = quadtree(0, 0, 4)
+testqtree.insert(point(1, 1, [0.6, 0.5, 0.6]))
+testqtree.insert(point(1, -1, [0.4, 0.5, 0.4]))
+testqtree.killemptychildren()
 
-mwu(testqtree, euclidean_dist, .5, 2*math.sqrt(2), 3, numedges, [point(1, 1, [1.0, 0, 1.0]), point(-1, -1, [0, 1.0, 0])], (0, 0 ,4))
+compute_barycenter(testqtree, euclidean_dist, 3)
+print(cost)
+print(barycenter)
     
     
 
