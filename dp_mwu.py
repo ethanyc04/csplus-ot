@@ -18,253 +18,263 @@ class point:
    
 class quadtree:
 
-   def __init__(self, x, y, l):
-       #initialize quadtree object
-       self.x = x
-       self.y = y
-       self.l = l
-       self.points = []
-       self.divided = False
-       self.topleft = None
-       self.topright = None
-       self.botleft = None
-       self.botright = None
-       self.parent = None
-       self.dualweight = []
-       self.flow = []
-       self.mass = 0
-       self.min_cost_child = None
-       self.cost_to_parent = 0
-       self.augment_cost = 0
-       self.augment_path_cost = 0
-       self.augment_mass = 0
-       self.id = None
+    def __init__(self, x, y, l):
+        #initialize quadtree object
+        self.x = x
+        self.y = y
+        self.l = l
+        self.points = []
+        self.divided = False
+        self.topleft = None
+        self.topright = None
+        self.botleft = None
+        self.botright = None
+        self.parent = None
+        self.dualweight = []
+        self.flow = []
+        self.mass = 0
+        self.min_cost_child = None
+        self.cost_to_parent = 0
+        self.augment_cost = 0
+        self.augment_path_cost = 0
+        self.augment_mass = 0
+        self.id = None
 
-   def __repr__(self):
-       return f'{{"x": {self.x}, "y": {self.y}, "id": {self.id}}}'
+    def __repr__(self):
+        return f'{{"x": {self.x}, "y": {self.y}, "id": {self.id}}}'
 
-   def contains(self, point):
-       # checks if point falls within a cell
-       xcheck = self.x - (self.l / 2) <= point.x and self.x + (self.l / 2) >= point.x
-       ycheck = self.y - (self.l / 2) <= point.y and self.y + (self.l / 2) >= point.y
-       return xcheck and ycheck
+    def contains(self, point):
+        # checks if point falls within a cell
+        xcheck = self.x - (self.l / 2) <= point.x and self.x + (self.l / 2) >= point.x
+        ycheck = self.y - (self.l / 2) <= point.y and self.y + (self.l / 2) >= point.y
+        return xcheck and ycheck
 
-   def subdivide(self):
-       #divide up the current cell
-       x, y, l = self.x, self.y, self.l
+    def subdivide(self):
+        #divide up the current cell
+        x, y, l = self.x, self.y, self.l
 
-       self.topleft = quadtree(x-l/4, y+l/4, l/2)
-       self.topleft.parent = self
+        self.topleft = quadtree(x-l/4, y+l/4, l/2)
+        self.topleft.parent = self
 
-       self.topright = quadtree(x+l/4, y+l/4, l/2)
-       self.topright.parent = self
+        self.topright = quadtree(x+l/4, y+l/4, l/2)
+        self.topright.parent = self
 
-       self.botleft = quadtree(x-l/4, y-l/4, l/2)
-       self.botleft.parent = self
+        self.botleft = quadtree(x-l/4, y-l/4, l/2)
+        self.botleft.parent = self
 
-       self.botright = quadtree(x+l/4, y-l/4, l/2)
-       self.botright.parent = self
+        self.botright = quadtree(x+l/4, y-l/4, l/2)
+        self.botright.parent = self
 
-       self.divided = True
+        self.divided = True
 
-       for point in self.points:
-           leaf = self.topleft.insert(point)
-           if leaf == None:
-               leaf = self.topright.insert(point)
-           if leaf == None:
-               leaf = self.botleft.insert(point)
-           if leaf == None:
-               leaf = self.botright.insert(point)
+        for point in self.points:
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
 
-       self.points = []
+        self.points = []
 
-   def insert(self, point):
-       #insert a point into the quadtree starting at root
-       if not self.contains(point):
-           return None
-       elif self.divided:
-           leaf = self.topleft.insert(point)
-           if leaf == None:
-               leaf = self.topright.insert(point)
-           if leaf == None:
-               leaf = self.botleft.insert(point)
-           if leaf == None:
-               leaf = self.botright.insert(point)
-           return leaf
-       elif len(self.points) == 0:
-           self.points.append(point)
-           return self
-       else:
-           self.subdivide()
-           leaf = self.topleft.insert(point)
-           if leaf == None:
-               leaf = self.topright.insert(point)
-           if leaf == None:
-               leaf = self.botleft.insert(point)
-           if leaf == None:
-               leaf = self.botright.insert(point)
-           return leaf
+    def insert(self, point):
+        #insert a point into the quadtree starting at root
+        if not self.contains(point):
+            return None
+        elif self.divided:
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
+            return leaf
+        elif len(self.points) == 0:
+            self.points.append(point)
+            return self
+        else:
+            self.subdivide()
+            leaf = self.topleft.insert(point)
+            if leaf == None:
+                leaf = self.topright.insert(point)
+            if leaf == None:
+                leaf = self.botleft.insert(point)
+            if leaf == None:
+                leaf = self.botright.insert(point)
+            return leaf
 
-   def backward_insert(self, point):
-       #insert a point into the quadtree bottom-up recursively starting at leaf
+    def backward_insert(self, point):
+        #insert a point into the quadtree bottom-up recursively starting at leaf
 
-       leaf = self.insert(point)
-       if leaf == None:
-           return self.parent.backward_insert(point)
-       
-       return leaf
-   
-   def insert_list(qtree, points):
-       #insert a list of points into the quadtree
-       q = qtree
-       for p in points:
-           q = q.backward_insert(p)
+        leaf = self.insert(point)
+        if leaf == None:
+            return self.parent.backward_insert(point)
+        
+        return leaf
 
-   def killemptychildren(self):
-       #get rid of any cells that do not have points inisde
-       if not self.divided and len(self.points) != 0:
-           return
+    def insert_list(qtree, points):
+        #insert a list of points into the quadtree
+        q = qtree
+        for p in points:
+            q = q.backward_insert(p)
 
-       if not self.topleft.divided and len(self.topleft.points) == 0:
-           self.topleft = None
-       else:
-           self.topleft.killemptychildren()
-       
-       if not self.topright.divided and len(self.topright.points) == 0:
-           self.topright = None
-       else:
-           self.topright.killemptychildren()
+    def killemptychildren(self):
+        #get rid of any cells that do not have points inisde
+        if not self.divided and len(self.points) != 0:
+            return
 
-       if not self.botleft.divided and len(self.botleft.points) == 0:
-           self.botleft = None
-       else:
-           self.botleft.killemptychildren()
+        if not self.topleft.divided and len(self.topleft.points) == 0:
+            self.topleft = None
+        else:
+            self.topleft.killemptychildren()
+        
+        if not self.topright.divided and len(self.topright.points) == 0:
+            self.topright = None
+        else:
+            self.topright.killemptychildren()
 
-       if not self.botright.divided and len(self.botright.points) == 0:
-           self.botright = None
-       else:
-           self.botright.killemptychildren()
+        if not self.botleft.divided and len(self.botleft.points) == 0:
+            self.botleft = None
+        else:
+            self.botleft.killemptychildren()
 
-       
+        if not self.botright.divided and len(self.botright.points) == 0:
+            self.botright = None
+        else:
+            self.botright.killemptychildren()
 
-   def printsub(self):
-       print(self)
-       if len(self.points) != 0:
-           print(self.points[0].data)
-       if self.divided is False and len(self.points) > 0:
-           # print((self.x, self.y, self.l))
-           # print(self.points)
-           pass
-       else:
-           if self.topleft is not None:
-               self.topleft.printsub()
-           if self.topright is not None:
-               self.topright.printsub()
-           if self.botleft is not None:
-               self.botleft.printsub()
-           if self.botright is not None:
-               self.botright.printsub()
+        
 
-   def getlistofpoints(self, lst):
-       #gets list of points from a tree
-       #input list in form of [[xcoords], [ycoords], [distribution]
-       #colors are hard coded to work with 2 distributinos
-       if self.divided is False and len(self.points) > 0:
-           lst[0].append(self.points[0].x)
-           lst[1].append(self.points[0].y)
-           if min(self.points[0].data) > 0:
-               lst[2].append(2)
-           elif self.points[0].data[0] > 0:
-               lst[2].append(0)
-           elif self.points[0].data[1] > 0:
-               lst[2].append(1)
-           else:
-               lst[2].append(1000)
+    def printsub(self):
+        print(self)
+        if len(self.points) != 0:
+            print(self.points[0].data)
+        if self.divided is False and len(self.points) > 0:
+            # print((self.x, self.y, self.l))
+            # print(self.points)
+            pass
+        else:
+            if self.topleft is not None:
+                self.topleft.printsub()
+            if self.topright is not None:
+                self.topright.printsub()
+            if self.botleft is not None:
+                self.botleft.printsub()
+            if self.botright is not None:
+                self.botright.printsub()
 
-           return lst
-       if self.topleft is not None:
-           lst = self.topleft.getlistofpoints(lst)
-       if self.topright is not None:
-           lst = self.topright.getlistofpoints(lst)
-       if self.botleft is not None:
-           lst = self.botleft.getlistofpoints(lst)
-       if self.botright is not None:
-           lst = self.botright.getlistofpoints(lst)
-       
-       return lst
-   
-   def getcellboundaries(self, lst):
-       #returns info wiht correct format to print the line segments of the cells
-       #format is list of lists [[[x1, x2],[x3,x4]],[[y1, y2],[y3,y4]]]
-       
-       
-       line1x = [self.x - self.l / 2, self.x - self.l / 2]
-       line1y = [self.y - self.l / 2, self.y + self.l / 2]
-       lst[0].append(line1x)
-       lst[1].append(line1y)
+    def getlistofpoints(self, lst):
+        #gets list of points from a tree
+        #input list in form of [[xcoords], [ycoords], [distribution]
+        #colors are hard coded to work with 2 distributinos
+        if self.divided is False and len(self.points) > 0:
+            lst[0].append(self.points[0].x)
+            lst[1].append(self.points[0].y)
+            if min(self.points[0].data) > 0:
+                lst[2].append(2)
+            elif self.points[0].data[0] > 0:
+                lst[2].append(0)
+            elif self.points[0].data[1] > 0:
+                lst[2].append(1)
+            else:
+                lst[2].append(1000)
 
-       line2x = [self.x - self.l / 2, self.x + self.l / 2]
-       line2y = [self.y + self.l / 2, self.y + self.l / 2]
-       lst[0].append(line2x)
-       lst[1].append(line2y)
+            return lst
+        if self.topleft is not None:
+            lst = self.topleft.getlistofpoints(lst)
+        if self.topright is not None:
+            lst = self.topright.getlistofpoints(lst)
+        if self.botleft is not None:
+            lst = self.botleft.getlistofpoints(lst)
+        if self.botright is not None:
+            lst = self.botright.getlistofpoints(lst)
+        
+        return lst
 
-       line3x = [self.x + self.l / 2, self.x + self.l / 2]
-       line3y = [self.y + self.l / 2, self.y - self.l / 2]
-       lst[0].append(line3x)
-       lst[1].append(line3y)
+    def getcellboundaries(self, lst):
+        #returns info wiht correct format to print the line segments of the cells
+        #format is list of lists [[[x1, x2],[x3,x4]],[[y1, y2],[y3,y4]]]
+        
+        
+        line1x = [self.x - self.l / 2, self.x - self.l / 2]
+        line1y = [self.y - self.l / 2, self.y + self.l / 2]
+        lst[0].append(line1x)
+        lst[1].append(line1y)
 
-       line4x = [self.x - self.l / 2, self.x + self.l / 2]
-       line4y = [self.y - self.l / 2, self.y - self.l / 2]
-       lst[0].append(line4x)
-       lst[1].append(line4y)
+        line2x = [self.x - self.l / 2, self.x + self.l / 2]
+        line2y = [self.y + self.l / 2, self.y + self.l / 2]
+        lst[0].append(line2x)
+        lst[1].append(line2y)
 
-           
-       
-       if self.topleft is not None:
-           lst = self.topleft.getcellboundaries(lst)
-       if self.topright is not None:
-           lst = self.topright.getcellboundaries(lst)
-       if self.botleft is not None:
-           lst = self.botleft.getcellboundaries(lst)
-       if self.botright is not None:
-           lst = self.botright.getcellboundaries(lst)
+        line3x = [self.x + self.l / 2, self.x + self.l / 2]
+        line3y = [self.y + self.l / 2, self.y - self.l / 2]
+        lst[0].append(line3x)
+        lst[1].append(line3y)
 
-       return lst
-   
-   def plottree(self):
-       #plots a quadtree, colors are hard coded for 2 distributions
-       lstofpts = self.getlistofpoints([[],[],[]])
+        line4x = [self.x - self.l / 2, self.x + self.l / 2]
+        line4y = [self.y - self.l / 2, self.y - self.l / 2]
+        lst[0].append(line4x)
+        lst[1].append(line4y)
 
-       qtreeboundaries = self.getcellboundaries([[],[]])
+            
+        
+        if self.topleft is not None:
+            lst = self.topleft.getcellboundaries(lst)
+        if self.topright is not None:
+            lst = self.topright.getcellboundaries(lst)
+        if self.botleft is not None:
+            lst = self.botleft.getcellboundaries(lst)
+        if self.botright is not None:
+            lst = self.botright.getcellboundaries(lst)
 
-       for i in range(len(qtreeboundaries[0])):
-           print("test")
-           plt.plot(qtreeboundaries[0][i], qtreeboundaries[1][i], color="black")
+        return lst
 
-       upperx = (self.x + self.l / 2) + .2 * abs(self.x + self.l / 2)
-       uppery = (self.y + self.l / 2) + .2 * abs(self.y + self.l / 2)
+    def plottree(self):
+        #plots a quadtree, colors are hard coded for 2 distributions
+        lstofpts = self.getlistofpoints([[],[],[]])
 
-       lowerx = (self.x - self.l / 2) - .2 * abs(self.x - self.l / 2)
-       lowery = (self.y - self.l / 2) - .2 * abs(self.y - self.l / 2)
-       dist1 = [[],[]]
-       dist2 = [[],[]]
-       bothdist = [[],[]]
-       print(lstofpts)
-       for i in range(len(lstofpts[0])):
-           if lstofpts[2][i] == 0:
-               dist1[0].append(lstofpts[0][i])
-               dist1[1].append(lstofpts[1][i])
-           elif lstofpts[2][i] == 1:
-               dist2[0].append(lstofpts[0][i])
-               dist2[1].append(lstofpts[1][i])
-           else:
-               bothdist[0].append(lstofpts[0][i])
-               bothdist[1].append(lstofpts[1][i])
-       plt.plot(dist1[0], dist1[1], 'ro', color="red")
-       plt.plot(dist2[0], dist2[1], 'ro', color="blue")
-       plt.plot(bothdist[0], bothdist[1], 'ro', color="purple")
-       plt.axis((lowerx, upperx, lowery, uppery))
-       plt.show()
+        qtreeboundaries = self.getcellboundaries([[],[]])
+
+        for i in range(len(qtreeboundaries[0])):
+            print("test")
+            plt.plot(qtreeboundaries[0][i], qtreeboundaries[1][i], color="black")
+
+        upperx = (self.x + self.l / 2) + .2 * abs(self.x + self.l / 2)
+        uppery = (self.y + self.l / 2) + .2 * abs(self.y + self.l / 2)
+
+        lowerx = (self.x - self.l / 2) - .2 * abs(self.x - self.l / 2)
+        lowery = (self.y - self.l / 2) - .2 * abs(self.y - self.l / 2)
+        dist1 = [[],[]]
+        dist2 = [[],[]]
+        bothdist = [[],[]]
+        print(lstofpts)
+        for i in range(len(lstofpts[0])):
+            if lstofpts[2][i] == 0:
+                dist1[0].append(lstofpts[0][i])
+                dist1[1].append(lstofpts[1][i])
+            elif lstofpts[2][i] == 1:
+                dist2[0].append(lstofpts[0][i])
+                dist2[1].append(lstofpts[1][i])
+            else:
+                bothdist[0].append(lstofpts[0][i])
+                bothdist[1].append(lstofpts[1][i])
+        plt.plot(dist1[0], dist1[1], 'ro', color="red")
+        plt.plot(dist2[0], dist2[1], 'ro', color="blue")
+        plt.plot(bothdist[0], bothdist[1], 'ro', color="purple")
+        plt.axis((lowerx, upperx, lowery, uppery))
+        plt.show()
+
+    def reset(self):
+        self.dualweight = []
+        self.flow = []
+        self.mass = 0
+        self.min_cost_child = None
+        self.cost_to_parent = 0
+        self.augment_cost = 0
+        self.augment_path_cost = 0
+        self.augment_mass = 0
 
 def getboundingbox(lstofpts):
    #gets non randomly shifted minimum bounding box
@@ -866,92 +876,93 @@ def add_tree_flows_adjmatrix(qtree, k):
                
                adjacency_matrix[u][v][i] -= qtree.topright.flow[i]
 
-   
+#maintains shape of tree, resets flows, and updates leafs with leftover mass
+def leftover_mass_tree(qtree, k): 
+    if qtree == None:
+        return
+    if is_leaf(qtree):
+        pt = qtree.points[0]
+        id = iddict[(pt.x, pt.y)].id
+        leftovermass = np.zeros(k)
+        for v in edgesdict[id]:
+            leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
+        leftovermass = pt.data - leftovermass
+        pt.data = leftovermass
 
-
-   
-
+        qtree.reset()
+    
+    qtree.reset()
+    leftover_mass_tree(qtree.botleft, k)
+    leftover_mass_tree(qtree.botright, k)
+    leftover_mass_tree(qtree.topleft, k)
+    leftover_mass_tree(qtree.topright, k)
 
 def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
-   global cost
-   global edgesdict
-   global adjacency_matrix
-   global dualweights
-   global barycenter
+    global cost
+    global edgesdict
+    global adjacency_matrix
+    global dualweights
+    global barycenter
 
-   global id
-   global iddict
+    global id
+    global iddict
 
-   gstar = cost
-   g = gstar/math.log2(spread)
-   t = 8*((math.log2(spread))**2)*math.log2(k*numedges)
+    gstar = cost
+    l = gstar/math.log2(spread)
+    r = gstar
+    t = 8*((math.log2(spread))**2)*math.log2(k*numedges)
 
-   matchingfound = False
-   while not matchingfound and g <= gstar:
-       for u in edgesdict:
-           for v in edgesdict[u]:
+    while (1+epsilon)*l < r:
+        smaller = False
+        g = (l+r)/2
+        for u in edgesdict:
+            for v in edgesdict[u]:
             #    for i in range(k):
             #        adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
-               adjacency_matrix[u][v] += (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
-                                                                                                                                       
-       for i in range(math.ceil(t)):
-           for pt in ptlist:
-               id = iddict[(pt.x, pt.y)].id
-               #leftovermass = [0 for i in range(k)]
-               leftovermass = np.zeros(k)
-               for v in edgesdict[id]:
-                #    for z in range(k):
-                #        leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
-                    leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
-               for y in range(k):
-                   leftovermass[y] = pt.data[y] - leftovermass[y]
-               pt.data = leftovermass
-                       
+                adjacency_matrix[u][v] += (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
+                                                                                                                                        
+        for i in range(math.ceil(t)):
+            leftover_mass_tree(qtree, k)
+            
+            cost = 0
+            barycenter = {}
+            compute_barycenter(qtree, cost_func, k)
+            dualweights = {}
+            compute_dual_weights(qtree, cost_func, k)
 
-           newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
-           newqtree.insert_list(ptlist)
-           cost = 0
+            add_tree_flows_adjmatrix(qtree, k)
 
-           newqtree.killemptychildren()
-           id = 0
-           id_nodes(newqtree)
-           barycenter = {}
-           compute_barycenter(newqtree, cost_func, k)
-           dualweights = {}
-           compute_dual_weights(newqtree, cost_func, k)
-
-           add_tree_flows_adjmatrix(newqtree, k)
-
-           if cost <= epsilon*g:
-               print(barycenter)
-               cost = 0
-               for u in edgesdict:
-                   for v in edgesdict[u]:
+            if cost <= epsilon*g:
+                print(barycenter)
+                cost = 0
+                for u in edgesdict:
+                    for v in edgesdict[u]:
                     #    for i in range(k):
                     #        cost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                         cost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
-               return
-           else:
-               newcost = 0
-               for u in edgesdict:
-                   for v in edgesdict[u]:
+                smaller = True
+                r = g
+                break
+            else:
+                newcost = 0
+                for u in edgesdict:
+                    for v in edgesdict[u]:
                     #    for i in range(k):
                     #        adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
                     #        newcost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                       adjacency_matrix[u][v]
-                       newcost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
-               adjacency_matrix = adjacency_matrix * (g/newcost)
+                        adjacency_matrix[u][v]
+                        newcost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
+                adjacency_matrix = adjacency_matrix * (g/newcost)
             #    for u in edgesdict:
             #        for v in edgesdict[u]:
             #         #    for i in range(k):
             #         #        adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*(g/newcost)
             #            adjacency_matrix[u][v] = adjacency_matrix[u][v] * (g/newcost)
             
-           
+        if not smaller:
+            l = g
 
-       g = (1+epsilon)*g
-
-   return
+    return
 
 
 def plotbarycenter(barycenterdict, point_size, image_size):
