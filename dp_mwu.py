@@ -498,7 +498,7 @@ def DFS_dual_weights(new, parent, cost_func, k):
                new.dualweight[i] = parent.dualweight[i] - edgecost
            else:
                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
-       dualweights[new.id] = new.dualweight
+       dualweights[new.id] = np.array(new.dualweight)
    elif parent != None:
        edgecost = cost_func(new.x, parent.x, new.y, parent.y)
        new.dualweight = [0 for i in range(k)]
@@ -790,10 +790,10 @@ def construct_adjacency_matrix(qtree, k):
    global adjacency_matrix
    spanner_with_images(qtree)
    numnodes = len(edgesdict.keys())
-   adjacency_matrix = [[[] for y in range(numnodes)] for z in range(numnodes)]
-   for u in edgesdict:
-       for v in edgesdict[u]:
-           adjacency_matrix[u][v] = [0 for i in range(k)]
+   adjacency_matrix = np.array([np.array([np.zeros(k) for y in range(numnodes)]) for z in range(numnodes)])
+#    for u in edgesdict:
+#        for v in edgesdict[u]:
+#            adjacency_matrix[u][v] = [0 for i in range(k)]
 
 # edgesdict = {0:[2], 1:[0,2], 2:[0,1]}
 # construct_adjacency_matrix(5)
@@ -890,17 +890,19 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
    while not matchingfound and g <= gstar:
        for u in edgesdict:
            for v in edgesdict[u]:
-               for i in range(k):
-                   adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))#*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+            #    for i in range(k):
+            #        adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
+               adjacency_matrix[u][v] += (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
                                                                                                                                        
        for i in range(math.ceil(t)):
-           #newpts = copy.deepcopy(ptlist)
            for pt in ptlist:
                id = iddict[(pt.x, pt.y)].id
-               leftovermass = [0 for i in range(k)]
+               #leftovermass = [0 for i in range(k)]
+               leftovermass = np.zeros(k)
                for v in edgesdict[id]:
-                   for z in range(k):
-                       leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
+                #    for z in range(k):
+                #        leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
+                    leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
                for y in range(k):
                    leftovermass[y] = pt.data[y] - leftovermass[y]
                pt.data = leftovermass
@@ -925,20 +927,26 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                cost = 0
                for u in edgesdict:
                    for v in edgesdict[u]:
-                       for i in range(k):
-                           cost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                    #    for i in range(k):
+                    #        cost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                        cost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
                return
            else:
                newcost = 0
                for u in edgesdict:
                    for v in edgesdict[u]:
-                       for i in range(k):
-                           adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
-                           newcost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-               for u in edgesdict:
-                   for v in edgesdict[u]:
-                       for i in range(k):
-                           adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*(g/newcost)
+                    #    for i in range(k):
+                    #        adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
+                    #        newcost += adjacency_matrix[u][v][i]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                       adjacency_matrix[u][v]
+                       newcost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
+               adjacency_matrix = adjacency_matrix * (g/newcost)
+            #    for u in edgesdict:
+            #        for v in edgesdict[u]:
+            #         #    for i in range(k):
+            #         #        adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*(g/newcost)
+            #            adjacency_matrix[u][v] = adjacency_matrix[u][v] * (g/newcost)
+            
            
 
        g = (1+epsilon)*g
@@ -999,8 +1007,7 @@ for filename in glob.glob('testing images/mnist_zeros/*.png'):
    im = np.array(Image.open(filename))
    normalized_im = normalize_image(im)
    zero_images.append(normalized_im)
-zero_image_points, zero_image_size = images_to_points(zero_images[:20])
-print(zero_image_points[0].data)
+zero_image_points, zero_image_size = images_to_points(zero_images[:3])
 cost = 0
 barycenter = {}
 mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
@@ -1009,7 +1016,7 @@ insert_list(mnist_qtree, zero_image_points)
 # for p in zero_image_points:
 #     mnist_qtree0.insert(p)
 
-k = 20
+k = 3
 
 mnist_qtree.killemptychildren()
 id_nodes(mnist_qtree)
