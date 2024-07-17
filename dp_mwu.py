@@ -881,34 +881,37 @@ def add_tree_flows_adjmatrix(qtree, k):
                adjacency_matrix[u][v][i] -= qtree.topright.flow[i]
 
 #maintains shape of tree, resets flows, and updates leafs with leftover mass
-# def leftover_mass_tree(qtree, k): 
-#     if qtree == None:
-#         return
-#     if is_leaf(qtree):
-#         pt = qtree.points[0]
-#         # id = iddict[(pt.x, pt.y)].id
-#         # leftovermass = np.zeros(k)
-#         # for v in edgesdict[id]:
-#         #     leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
-#         # leftovermass = pt.data - leftovermass
-#         # pt.data = leftovermass
+               
+def leftover_mass_tree(qtree, k): 
+    global ogmass
+    if qtree == None:
+        return
+    if is_leaf(qtree):
+        pt = qtree.points[0]
+        id = iddict[(pt.x, pt.y)].id
+        ogptmass = ogmass[(pt.x, pt.y)]
+        leftovermass = np.zeros(k)
+        for v in edgesdict[id]:
+            leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
+        leftovermass = ogptmass - leftovermass
+        pt.data = leftovermass
 
-#         id = iddict[(pt.x, pt.y)].id
-#         leftovermass = [0 for i in range(k)]
-#         for v in edgesdict[id]:
-#             for z in range(k):
-#                 leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
-#         for y in range(k):
-#             leftovermass[y] = pt.data[y] - leftovermass[y]
-#         pt.data = leftovermass
+        # id = iddict[(pt.x, pt.y)].id
+        # leftovermass = [0 for i in range(k)]
+        # for v in edgesdict[id]:
+        #     for z in range(k):
+        #         leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
+        # for y in range(k):
+        #     leftovermass[y] = pt.data[y] - leftovermass[y]
+        # pt.data = leftovermass
 
-#         qtree.reset()
+        qtree.reset()
     
-#     qtree.reset()
-#     leftover_mass_tree(qtree.botleft, k)
-#     leftover_mass_tree(qtree.botright, k)
-#     leftover_mass_tree(qtree.topleft, k)
-#     leftover_mass_tree(qtree.topright, k)
+    qtree.reset()
+    leftover_mass_tree(qtree.botleft, k)
+    leftover_mass_tree(qtree.botright, k)
+    leftover_mass_tree(qtree.topleft, k)
+    leftover_mass_tree(qtree.topright, k)
 
 
 
@@ -938,38 +941,40 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
         #start iterating                                                                                
         for iteration in range(math.ceil(t)):
-            # leftover_mass_tree(qtree, k)
+            print(iteration)
+    
 
             #compute the leftover mass for every point
-            ptlistcopy = copy.deepcopy(ptlist)
-            for pt in ptlistcopy:
-                ptid = iddict[(pt.x, pt.y)].id #figure out the id of 
-                leftovermass = np.zeros(k)
-                #actually sum up the leftover mass
-                for v in edgesdict[ptid]:
-                    for i in range(k):
-                        leftovermass[i] = leftovermass[i] + adjacency_matrix[ptid][v][i] - adjacency_matrix[v][ptid][i]
-                pt.data -= leftovermass
+            # ptlistcopy = copy.deepcopy(ptlist)
+            # for pt in ptlistcopy:
+            #     ptid = iddict[(pt.x, pt.y)].id #figure out the id of 
+            #     leftovermass = np.zeros(k)
+            #     #actually sum up the leftover mass
+            #     for v in edgesdict[ptid]:
+            #         for i in range(k):
+            #             leftovermass[i] = leftovermass[i] + adjacency_matrix[ptid][v][i] - adjacency_matrix[v][ptid][i]
+            #     pt.data -= leftovermass
 
-            #construct new qtree based off the leftover mass
-            newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
-            newqtree.insert_list(ptlistcopy)
-            newqtree.killemptychildren()
-            id = 0
-            id_nodes(newqtree)
+            # #construct new qtree based off the leftover mass
+            # newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
+            # newqtree.insert_list(ptlistcopy)
+            # newqtree.killemptychildren()
+            # id = 0
+            # id_nodes(newqtree)
 
             #compute barycenter cost for the leftover mass tree and recompute the dualweights
+            leftover_mass_tree(qtree, k)
             cost = 0
             barycenter = {}
-            compute_barycenter(newqtree, cost_func, k)
+            compute_barycenter(qtree, cost_func, k)
             #print(barycenter)
             dualweights = {}
-            compute_dual_weights(newqtree, cost_func, k)
+            compute_dual_weights(qtree, cost_func, k)
             #print(cost)
             
             #if cost small enough then we have found our solution
             if cost <= epsilon*g:
-                add_tree_flows_adjmatrix(newqtree, k) #add the flows of our edges in the tree to the adjacency matrix to compute the overall cost
+                add_tree_flows_adjmatrix(qtree, k) #add the flows of our edges in the tree to the adjacency matrix to compute the overall cost
                 print(barycenter)
                 cost = 0
                 #compute the overall cost
@@ -985,21 +990,27 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                 #if we didnt find a proper solution perform the mwu
                 newcost = 0
                 #iterates through all the edges and performs the update
+                edgeset = set()
                 for u in edgesdict:
+                    edgeset.add(u)
                     for v in edgesdict[u]:
+                        if v in edgeset:
+                            continue
                         for i in range(k):
                             #print(math.exp((epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))))
                             adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
-                #recompute the newcost to rescale the flows by g/newcost
-                for u in edgesdict:
-                    for v in edgesdict[u]:
-                        for i in range(k):
+                            adjacency_matrix[v][u][i] = adjacency_matrix[v][u][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[v][i]-dualweights[u][i])/cost_func(iddict[v].x, iddict[u].x, iddict[v].y, iddict[u].y)))
                             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                #recompute the newcost to rescale the flows by g/newcost
+                # for u in edgesdict:
+                #     for v in edgesdict[u]:
+                #         for i in range(k):
+                #             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                         #adjacency_matrix[u][v]
                         #newcost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
                 #print(adjacency_matrix)
                 
-                adjacency_matrix = adjacency_matrix * (g/(newcost/2)) #rescale the flows
+                adjacency_matrix = adjacency_matrix * (g/(newcost)) #rescale the flows
                 #again cost is divided by 2 due to double counting
                 
                 # s = 0
@@ -1049,12 +1060,17 @@ edgesdict = {}
 adjacency_matrix = []
 leafnodes = []
 
+
 testqtree = quadtree(0, 0, 4)
 ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
 insert_list(testqtree, ptlist)
 testqtree.killemptychildren()
 id_nodes(testqtree)
 # testqtree.printsub()
+
+ogmass = {}
+for pt in ptlist:
+    ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
 compute_barycenter(testqtree, euclidean_dist, 3)
 # print("COST", cost)
@@ -1085,6 +1101,10 @@ print(adjacency_matrix)
 # insert_list(mnist_qtree, zero_image_points)
 # # for p in zero_image_points:
 # #     mnist_qtree0.insert(p)
+
+# ogmass = {}
+# for pt in zero_image_points:
+#     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
 # k = 3
 
