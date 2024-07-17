@@ -519,7 +519,7 @@ def DFS_dual_weights(new, parent, cost_func, k):
     global dualweights
     if parent != None and new.parent != parent:
         edgecost = cost_func(new.x, parent.x, new.y, parent.y)
-        new.dualweight = [0 for i in range(k)]
+        new.dualweight = np.zeros(k)
         k1 = negative_flow(parent)
         k1rev = positive_flow(parent)
         alpha = (k1 - k1rev)*edgecost
@@ -530,10 +530,10 @@ def DFS_dual_weights(new, parent, cost_func, k):
                 new.dualweight[i] = parent.dualweight[i] - edgecost
             else:
                 new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
-        dualweights[new.id] = np.array(new.dualweight)
+        dualweights[new.id] = new.dualweight
     elif parent != None:
         edgecost = cost_func(new.x, parent.x, new.y, parent.y)
-        new.dualweight = [0 for i in range(k)]
+        new.dualweight = np.zeros(k)
         k1 = positive_flow(new)
         k1rev = negative_flow(new)
         alpha = (k1 - k1rev)*edgecost
@@ -627,7 +627,7 @@ def recompute_cstar(new, parent, cost_func, k):
 def compute_dual_weights(qtree, cost_func, k):
    global dualweights
    newroot = find_new_root(qtree)
-   newroot.dualweight = [0 for i in range(k)]
+   newroot.dualweight = np.zeros(k)
    dualweights[newroot.id] = newroot.dualweight
    recompute_cstar(newroot, None, cost_func, k)
    DFS_dual_weights(newroot, None, cost_func, k)
@@ -941,8 +941,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
         #start iterating                                                                                
         for iteration in range(math.ceil(t)):
-            print(iteration)
-    
+            #print(iteration)
 
             #compute the leftover mass for every point
             # ptlistcopy = copy.deepcopy(ptlist)
@@ -968,7 +967,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             barycenter = {}
             compute_barycenter(qtree, cost_func, k)
             #print(barycenter)
-            dualweights = {}
+            dualweights = np.zeros((len(edgesdict.keys())), k)
             compute_dual_weights(qtree, cost_func, k)
             #print(cost)
             
@@ -1029,6 +1028,22 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
     return
 
+def fill_cost_matrix(qtree):
+    global cost_matrix
+
+
+def construct_cost_matrix(qtree, k, cost_func):
+    global edgesdict
+    global cost_matrix
+    numnodes = len(edgesdict.keys())
+    cost_matrix = np.zeros((numnodes, numnodes, k))
+    for u in edgesdict:
+        for v in edgesdict[u]:
+            edgecost = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+            
+
+
+
 #plots the barycenter on a graph, you don't need to worry about this
 def plotbarycenter(barycenterdict, point_size, image_size):
    coords = barycenterdict.items()
@@ -1059,6 +1074,7 @@ numedges = 0
 edgesdict = {}
 adjacency_matrix = []
 leafnodes = []
+cost_matrix = []
 
 
 testqtree = quadtree(0, 0, 4)
