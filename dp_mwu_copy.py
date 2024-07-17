@@ -16,7 +16,7 @@ class point:
     def __repr__(self):
         return f'{{"x": {self.x}, "y": {self.y}}}'
 
-class quadtree:
+class quadtree:     #quadtree data structure
 
     def __init__(self, x, y, l):
         #initialize quadtree object
@@ -148,6 +148,7 @@ class quadtree:
         
 
     def printsub(self):
+        # print subtree
         print(self)
         if len(self.points) != 0:
             print(self.points[0].data)
@@ -267,6 +268,7 @@ class quadtree:
         plt.show()
 
     def reset(self):
+        #reset quadtree node
         self.dualweight = []
         self.flow = []
         self.mass = 0
@@ -317,135 +319,140 @@ cost = 0
 
 
 def euclidean_dist(x1, x2, y1, y2):
-   return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 def positive_flow(qtree):    #return number of distributions with positive flow
-   n = 0      
-   for f in qtree.flow:
-       if f > 0.000000000000001:
-           n+=1
-   return n
+    n = 0      
+    for f in qtree.flow:
+        if f > 0.000000000000001:
+            n+=1
+    return n
 
 def negative_flow(qtree):    #return number of distributions with negative flow
-   n = 0      
-   for f in qtree.flow:
-       if f < -0.000000000000001:
-           n+=1
-   return n
+    n = 0      
+    for f in qtree.flow:
+        if f < -0.000000000000001:
+            n+=1
+    return n
 
 
 def initialize(qtree, cost_func, k):
-   global cost
-   if qtree == None:
-       return
-   if is_leaf(qtree):
-       pt = qtree.points[0]
-       qtree.flow = np.array(pt.data)
-       # for m in pt.data:
-       #     cost += m* cost_func(pt.x, qtree.x, pt.y, qtree.y)
-       return
-   
-   initialize(qtree.topleft, cost_func, k)
-   initialize(qtree.topright, cost_func, k)
-   initialize(qtree.botleft, cost_func, k)
-   initialize(qtree.botright, cost_func, k)
-   qtree.flow = np.zeros(k)
-   if qtree.topleft != None:
-       qtree.flow += qtree.topleft.flow
-       qtree.topleft.cost_to_parent = cost_func(qtree.x, qtree.topleft.x, qtree.y, qtree.topleft.y)
-       cost += np.sum(qtree.topleft.flow * qtree.topleft.cost_to_parent)
-   if qtree.topright != None:
-       qtree.flow += qtree.topright.flow
-       qtree.topright.cost_to_parent = cost_func(qtree.x, qtree.topright.x, qtree.y, qtree.topright.y)
-       cost += np.sum(qtree.topright.flow * qtree.topright.cost_to_parent)
-   if qtree.botleft != None:
-       qtree.flow += qtree.botleft.flow
-       qtree.botleft.cost_to_parent = cost_func(qtree.x, qtree.botleft.x, qtree.y, qtree.botleft.y)
-       cost += np.sum(qtree.botleft.flow * qtree.botleft.cost_to_parent)
-   if qtree.botright != None:
-       qtree.flow += qtree.botright.flow
-       qtree.botright.cost_to_parent = cost_func(qtree.x, qtree.botright.x, qtree.y, qtree.botright.y)
-       cost += np.sum(qtree.botright.flow * qtree.botright.cost_to_parent)
+    # first step in DP algorithm: push all mass up
+    global cost
+    if qtree == None:
+        return
+    if is_leaf(qtree):
+        pt = qtree.points[0]
+        qtree.flow = np.array(pt.data)
+        # for m in pt.data:
+        #     cost += m* cost_func(pt.x, qtree.x, pt.y, qtree.y)
+        return
+
+    initialize(qtree.topleft, cost_func, k)
+    initialize(qtree.topright, cost_func, k)
+    initialize(qtree.botleft, cost_func, k)
+    initialize(qtree.botright, cost_func, k)
+    qtree.flow = np.zeros(k)
+    if qtree.topleft != None:
+        qtree.flow += qtree.topleft.flow
+        qtree.topleft.cost_to_parent = cost_func(qtree.x, qtree.topleft.x, qtree.y, qtree.topleft.y)
+        cost += np.sum(qtree.topleft.flow * qtree.topleft.cost_to_parent)
+    if qtree.topright != None:
+        qtree.flow += qtree.topright.flow
+        qtree.topright.cost_to_parent = cost_func(qtree.x, qtree.topright.x, qtree.y, qtree.topright.y)
+        cost += np.sum(qtree.topright.flow * qtree.topright.cost_to_parent)
+    if qtree.botleft != None:
+        qtree.flow += qtree.botleft.flow
+        qtree.botleft.cost_to_parent = cost_func(qtree.x, qtree.botleft.x, qtree.y, qtree.botleft.y)
+        cost += np.sum(qtree.botleft.flow * qtree.botleft.cost_to_parent)
+    if qtree.botright != None:
+        qtree.flow += qtree.botright.flow
+        qtree.botright.cost_to_parent = cost_func(qtree.x, qtree.botright.x, qtree.y, qtree.botright.y)
+        cost += np.sum(qtree.botright.flow * qtree.botright.cost_to_parent)
 
 def minimize_path_cost(qtree):
-   qtree.augment_path_cost = 0
-   if qtree.botleft != None:
-       c = qtree.botleft.augment_path_cost + qtree.botleft.augment_cost
-       if c < qtree.augment_path_cost:
-           qtree.augment_path_cost = c
-           qtree.min_cost_child = qtree.botleft
-   if qtree.botright != None:
-       c = qtree.botright.augment_path_cost + qtree.botright.augment_cost
-       if c < qtree.augment_path_cost:
-           qtree.augment_path_cost = c
-           qtree.min_cost_child = qtree.botright
-   if qtree.topleft != None:
-       c = qtree.topleft.augment_path_cost + qtree.topleft.augment_cost
-       if c < qtree.augment_path_cost:
-           qtree.augment_path_cost = c
-           qtree.min_cost_child = qtree.topleft
-   if qtree.topright != None:
-       c = qtree.topright.augment_path_cost + qtree.topright.augment_cost
-       if c < qtree.augment_path_cost:
-           qtree.augment_path_cost = c
-           qtree.min_cost_child = qtree.topright
+    # compute minimum cost children and augmenting path costs
+    qtree.augment_path_cost = 0
+    if qtree.botleft != None:
+        c = qtree.botleft.augment_path_cost + qtree.botleft.augment_cost
+        if c < qtree.augment_path_cost:
+            qtree.augment_path_cost = c
+            qtree.min_cost_child = qtree.botleft
+    if qtree.botright != None:
+        c = qtree.botright.augment_path_cost + qtree.botright.augment_cost
+        if c < qtree.augment_path_cost:
+            qtree.augment_path_cost = c
+            qtree.min_cost_child = qtree.botright
+    if qtree.topleft != None:
+        c = qtree.topleft.augment_path_cost + qtree.topleft.augment_cost
+        if c < qtree.augment_path_cost:
+            qtree.augment_path_cost = c
+            qtree.min_cost_child = qtree.topleft
+    if qtree.topright != None:
+        c = qtree.topright.augment_path_cost + qtree.topright.augment_cost
+        if c < qtree.augment_path_cost:
+            qtree.augment_path_cost = c
+            qtree.min_cost_child = qtree.topright
    
 
 def update_augment_mass(qtree, k):
-   qtree.augment_mass = 0
-   if qtree.augment_path_cost < 0:
-       mask = np.where(qtree.min_cost_child.flow > 0.000000000000001)
-       nonzero_flow = qtree.min_cost_child.flow[mask]
-       if len(nonzero_flow) == 0:
-           return
-       min_flow = np.min(nonzero_flow)
-       if qtree.min_cost_child.augment_mass == 0:
-           qtree.augment_mass = min_flow
-       else:
-           qtree.augment_mass = min(min_flow, qtree.min_cost_child.augment_mass)
+    # compute mass to be augmented
+    qtree.augment_mass = 0
+    if qtree.augment_path_cost < 0:
+        mask = np.where(qtree.min_cost_child.flow > 0.000000000000001)
+        nonzero_flow = qtree.min_cost_child.flow[mask]
+        if len(nonzero_flow) == 0:
+            return
+        min_flow = np.min(nonzero_flow)
+        if qtree.min_cost_child.augment_mass == 0:
+            qtree.augment_mass = min_flow
+        else:
+            qtree.augment_mass = min(min_flow, qtree.min_cost_child.augment_mass)
 
 def compute_augmenting_path(qtree, k):
-   if qtree == None:
-       return
-   if is_leaf(qtree):
-       k1 = len(np.where(qtree.flow > 0.000000000000001)[0])     # number of distributions with positive flow
-       qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-       return
-   
-   compute_augmenting_path(qtree.botleft, k)
-   compute_augmenting_path(qtree.botright, k)
-   compute_augmenting_path(qtree.topleft, k)
-   compute_augmenting_path(qtree.topright, k)
+    # compute augmenting path with minimal cost
+    if qtree == None:
+        return
+    if is_leaf(qtree):
+        k1 = len(np.where(qtree.flow > 0.000000000000001)[0])     # number of distributions with positive flow
+        qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+        return
 
-   k1 = len(np.where(qtree.flow > 0.000000000000001)[0])      # number of distributions with positive flow
-   qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-   minimize_path_cost(qtree)
-   update_augment_mass(qtree, k)
+    compute_augmenting_path(qtree.botleft, k)
+    compute_augmenting_path(qtree.botright, k)
+    compute_augmenting_path(qtree.topleft, k)
+    compute_augmenting_path(qtree.topright, k)
+
+    k1 = len(np.where(qtree.flow > 0.000000000000001)[0])      # number of distributions with positive flow
+    qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+    minimize_path_cost(qtree)
+    update_augment_mass(qtree, k)
 
 def push_flow(qtree, cost_func, k, push_mass):
-   global barycenter
+    # push flow down the tree and update barycenter
+    global barycenter
 
-   if qtree.min_cost_child == None:
-       # if is_leaf(qtree):
-       #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
-       #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree)
-       qtree.mass += push_mass
-       if (qtree.x, qtree.y) not in barycenter:
-           barycenter[(qtree.x, qtree.y)] = 0
-       barycenter[(qtree.x, qtree.y)] += push_mass
-       qtree.flow -= push_mass
-       k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
-       qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-       return
+    if qtree.min_cost_child == None:
+        # if is_leaf(qtree):
+        #     cost -= push_mass * cost_func(qtree.x, qtree.points[0].x, 
+        #                                   qtree.y, qtree.points[0].y) * positive_flow(qtree)
+        qtree.mass += push_mass
+        if (qtree.x, qtree.y) not in barycenter:
+            barycenter[(qtree.x, qtree.y)] = 0
+        barycenter[(qtree.x, qtree.y)] += push_mass
+        qtree.flow -= push_mass
+        k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
+        qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+        return
 
-   push_flow(qtree.min_cost_child, cost_func, k, push_mass)
+    push_flow(qtree.min_cost_child, cost_func, k, push_mass)
 
-   qtree.flow -= push_mass
-   k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
-   qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
-   qtree.min_cost_child = None
-   minimize_path_cost(qtree)
-   update_augment_mass(qtree, k)
+    qtree.flow -= push_mass
+    k1 = len(np.where(qtree.flow > 0.000000000000001)[0])
+    qtree.augment_cost = (k - 2*k1) * qtree.cost_to_parent
+    qtree.min_cost_child = None
+    minimize_path_cost(qtree)
+    update_augment_mass(qtree, k)
 
 # def get_barycenter(qtree):
 #     global barycenter
@@ -460,164 +467,167 @@ def push_flow(qtree, cost_func, k, push_mass):
 #     get_barycenter(qtree.botright)
 
 def compute_barycenter(qtree, cost_func, k):
-   global cost
-   global barycenter
+    # compute barycenteer with DP algorithm
+    global cost
+    global barycenter
 
-   initialize(qtree, cost_func, k)
-   qtree.mass = 1
-   compute_augmenting_path(qtree, k)
-   cost += qtree.augment_path_cost*qtree.augment_mass
-   
-   while qtree.augment_path_cost < 0 and qtree.mass > 0:
-       qtree.mass -= qtree.augment_mass
-       push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
-       cost += qtree.augment_path_cost*qtree.augment_mass
-   if qtree.mass > 0.00000000000001:
-       barycenter[(qtree.x, qtree.y)] = qtree.mass
+    initialize(qtree, cost_func, k)
+    qtree.mass = 1
+    compute_augmenting_path(qtree, k)
+    cost += qtree.augment_path_cost*qtree.augment_mass
+
+    while qtree.augment_path_cost < 0 and qtree.mass > 0:
+        qtree.mass -= qtree.augment_mass
+        push_flow(qtree, euclidean_dist, k, qtree.augment_mass)
+        cost += qtree.augment_path_cost*qtree.augment_mass
+    if qtree.mass > 0.00000000000001:
+        barycenter[(qtree.x, qtree.y)] = qtree.mass
 
 
 def find_new_root(qtree):
-   if qtree.parent == None:
-       res = None
-       if qtree.topleft != None:
-           res = find_new_root(qtree.topleft)
-       if res == None and qtree.topright != None:
-           res = find_new_root(qtree.topright)
-       if res == None and qtree.botleft != None:
-           res = find_new_root(qtree.botleft)
-       if res == None and qtree.botright != None:
-           res = find_new_root(qtree.botright)
-       return res
-   if qtree.mass > 0:
-       return qtree
-   if is_leaf(qtree):
-       return None
-   res = None
-   if qtree.topleft != None:
-       res = find_new_root(qtree.topleft)
-   if res == None and qtree.topright != None:
-       res = find_new_root(qtree.topright)
-   if res == None and qtree.botleft != None:
-       res = find_new_root(qtree.botleft)
-   if res == None and qtree.botright != None:
-       res = find_new_root(qtree.botright)
-   return res
+    # find new root for computing dual weights
+    if qtree.parent == None:
+        res = None
+        if qtree.topleft != None:
+            res = find_new_root(qtree.topleft)
+        if res == None and qtree.topright != None:
+            res = find_new_root(qtree.topright)
+        if res == None and qtree.botleft != None:
+            res = find_new_root(qtree.botleft)
+        if res == None and qtree.botright != None:
+            res = find_new_root(qtree.botright)
+        return res
+    if qtree.mass > 0:
+        return qtree
+    if is_leaf(qtree):
+        return None
+    res = None
+    if qtree.topleft != None:
+        res = find_new_root(qtree.topleft)
+    if res == None and qtree.topright != None:
+        res = find_new_root(qtree.topright)
+    if res == None and qtree.botleft != None:
+        res = find_new_root(qtree.botleft)
+    if res == None and qtree.botright != None:
+        res = find_new_root(qtree.botright)
+    return res
 
 
 def DFS_dual_weights(new, parent, cost_func, k):
-   global dualweights
-   if parent != None and new.parent != parent:
-       edgecost = cost_func(new.x, parent.x, new.y, parent.y)
-       new.dualweight = [0 for i in range(k)]
-       k1 = negative_flow(parent)
-       k1rev = positive_flow(parent)
-       alpha = (k1 - k1rev)*edgecost
-       for i in range(k):
-           if parent.flow[i] < -.00000000000001:
-               new.dualweight[i] = parent.dualweight[i] + edgecost
-           elif parent.flow[i] > 0.0000000000001:
-               new.dualweight[i] = parent.dualweight[i] - edgecost
-           else:
-               new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
-       dualweights[new.id] = np.array(new.dualweight)
-   elif parent != None:
-       edgecost = cost_func(new.x, parent.x, new.y, parent.y)
-       new.dualweight = [0 for i in range(k)]
-       k1 = positive_flow(new)
-       k1rev = negative_flow(new)
-       alpha = (k1 - k1rev)*edgecost
+    # compute dual weights, new is current node, parent is current node's parent in rerooted tree,
+    # new.parent is parent of current node in original tree
+    global dualweights
+    if parent != None and new.parent != parent:
+        edgecost = cost_func(new.x, parent.x, new.y, parent.y)
+        new.dualweight = np.zeros(k)
+        k1 = negative_flow(parent)
+        k1rev = positive_flow(parent)
+        alpha = (k1 - k1rev)*edgecost
+        for i in range(k):
+            if parent.flow[i] < -.00000000000001:
+                new.dualweight[i] = parent.dualweight[i] + edgecost
+            elif parent.flow[i] > 0.0000000000001:
+                new.dualweight[i] = parent.dualweight[i] - edgecost
+            else:
+                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        dualweights[new.id] = new.dualweight
+    elif parent != None:
+        edgecost = cost_func(new.x, parent.x, new.y, parent.y)
+        new.dualweight = np.zeros(k)
+        k1 = positive_flow(new)
+        k1rev = negative_flow(new)
+        alpha = (k1 - k1rev)*edgecost
 
-       for i in range(k):
-           if new.flow[i] > .00000000000001:
-               new.dualweight[i] = parent.dualweight[i] + edgecost
-           elif new.flow[i] < -.00000000000001:
-               new.dualweight[i] = parent.dualweight[i] - edgecost
-           else:
-               new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
-       dualweights[new.id] = new.dualweight
+        for i in range(k):
+            if new.flow[i] > .00000000000001:
+                new.dualweight[i] = parent.dualweight[i] + edgecost
+            elif new.flow[i] < -.00000000000001:
+                new.dualweight[i] = parent.dualweight[i] - edgecost
+            else:
+                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        dualweights[new.id] = new.dualweight
 
-   if new.topleft != None and new.topleft != parent:
-       DFS_dual_weights(new.topleft, new, cost_func, k)
-   if new.topright != None and new.topright != parent:
-       DFS_dual_weights(new.topright, new, cost_func, k)
-   if new.botleft != None and new.botleft != parent:
-       DFS_dual_weights(new.botleft, new, cost_func, k)
-   if new.botright != None and new.botright != parent:
-       DFS_dual_weights(new.botright, new, cost_func, k)
-   if new.parent != None and new.parent != parent:
-       DFS_dual_weights(new.parent, new, cost_func, k)
+    if new.topleft != None and new.topleft != parent:
+        DFS_dual_weights(new.topleft, new, cost_func, k)
+    if new.topright != None and new.topright != parent:
+        DFS_dual_weights(new.topright, new, cost_func, k)
+    if new.botleft != None and new.botleft != parent:
+        DFS_dual_weights(new.botleft, new, cost_func, k)
+    if new.botright != None and new.botright != parent:
+        DFS_dual_weights(new.botright, new, cost_func, k)
+    if new.parent != None and new.parent != parent:
+        DFS_dual_weights(new.parent, new, cost_func, k)
 
 
 def recompute_cstar(new, parent, cost_func, k):
+    if is_leaf(new) and parent != None:
+        k1 = positive_flow(new)
+        new.augment_path_cost = 0
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
+        return
 
-   if is_leaf(new) and parent != None:
-       k1 = positive_flow(new)
-       new.augment_path_cost = 0
-       new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
-       return
+    if new.topleft != None and new.topleft != parent:
+        recompute_cstar(new.topleft, new, cost_func, k)
+    if new.topright != None and new.topright != parent:
+        recompute_cstar(new.topright, new, cost_func, k)
+    if new.botleft != None and new.botleft != parent:
+        recompute_cstar(new.botleft, new, cost_func, k)
+    if new.botright != None and new.botright != parent:
+        recompute_cstar(new.botright, new, cost_func, k)
+    if new.parent != None and new.parent != parent:
+        recompute_cstar(new.parent, new, cost_func, k)
 
-   if new.topleft != None and new.topleft != parent:
-       recompute_cstar(new.topleft, new, cost_func, k)
-   if new.topright != None and new.topright != parent:
-       recompute_cstar(new.topright, new, cost_func, k)
-   if new.botleft != None and new.botleft != parent:
-       recompute_cstar(new.botleft, new, cost_func, k)
-   if new.botright != None and new.botright != parent:
-       recompute_cstar(new.botright, new, cost_func, k)
-   if new.parent != None and new.parent != parent:
-       recompute_cstar(new.parent, new, cost_func, k)
+    if parent == new.parent and parent != None:
+        k1 = positive_flow(new)
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
+    elif parent != None:
+        k1 = negative_flow(parent)
+        new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
 
-   if parent == new.parent and parent != None:
-       k1 = positive_flow(new)
-       new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
-   elif parent != None:
-       k1 = negative_flow(parent)
-       new.augment_cost = (k-2*k1)*cost_func(new.x, parent.x, new.y, parent.y)
+    new.augment_path_cost = 0
+    if new.botleft != None and new.botleft != parent:
+        c = new.botleft.augment_path_cost + new.botleft.augment_cost
+        if c < new.augment_path_cost:
+            new.augment_path_cost = c
+    if new.botright != None and new.botright != parent:
+        c = new.botright.augment_path_cost + new.botright.augment_cost
+        if c < new.augment_path_cost:
+            new.augment_path_cost = c
+    if new.topleft != None and new.topleft != parent:
+        c = new.topleft.augment_path_cost + new.topleft.augment_cost
+        if c < new.augment_path_cost:
+            new.augment_path_cost = c
+    if new.topright != None and new.botright != parent:
+        c = new.topright.augment_path_cost + new.topright.augment_cost
+        if c < new.augment_path_cost:
+            new.augment_path_cost = c
+    if new.parent != None and new.parent != parent:
+        c = new.parent.augment_path_cost + new.parent.augment_cost
+        if c < new.augment_path_cost:
+            new.augment_path_cost = c
 
-   new.augment_path_cost = 0
-   if new.botleft != None and new.botleft != parent:
-       c = new.botleft.augment_path_cost + new.botleft.augment_cost
-       if c < new.augment_path_cost:
-           new.augment_path_cost = c
-   if new.botright != None and new.botright != parent:
-       c = new.botright.augment_path_cost + new.botright.augment_cost
-       if c < new.augment_path_cost:
-           new.augment_path_cost = c
-   if new.topleft != None and new.topleft != parent:
-       c = new.topleft.augment_path_cost + new.topleft.augment_cost
-       if c < new.augment_path_cost:
-           new.augment_path_cost = c
-   if new.topright != None and new.botright != parent:
-       c = new.topright.augment_path_cost + new.topright.augment_cost
-       if c < new.augment_path_cost:
-           new.augment_path_cost = c
-   if new.parent != None and new.parent != parent:
-       c = new.parent.augment_path_cost + new.parent.augment_cost
-       if c < new.augment_path_cost:
-           new.augment_path_cost = c
+# dualweightsum = 0
+# def printdualweights(qtree):
+#     global dualweightsum
+#     if is_leaf(qtree):
+#         for i in range(len(qtree.dualweight)):
+#             dualweightsum += qtree.dualweight[i]*qtree.points[0].data[i]
 
-dualweightsum = 0
-def printdualweights(qtree):
-   global dualweightsum
-   if is_leaf(qtree):
-       for i in range(len(qtree.dualweight)):
-           dualweightsum += qtree.dualweight[i]*qtree.points[0].data[i]
-
-   #print(qtree.augment_path_cost)
-   if qtree.topleft != None:
-       printdualweights(qtree.topleft)
-   if qtree.topright != None:
-       printdualweights(qtree.topright)
-   if qtree.botleft != None:
-       printdualweights(qtree.botleft)
-   if qtree.botright != None:
-       printdualweights(qtree.botright)
+#     #print(qtree.augment_path_cost)
+#     if qtree.topleft != None:
+#         printdualweights(qtree.topleft)
+#     if qtree.topright != None:
+#         printdualweights(qtree.topright)
+#     if qtree.botleft != None:
+#         printdualweights(qtree.botleft)
+#     if qtree.botright != None:
+#         printdualweights(qtree.botright)
 
 
 def compute_dual_weights(qtree, cost_func, k):
    global dualweights
    newroot = find_new_root(qtree)
-   newroot.dualweight = [0 for i in range(k)]
+   newroot.dualweight = np.zeros(k)
    dualweights[newroot.id] = newroot.dualweight
    recompute_cstar(newroot, None, cost_func, k)
    DFS_dual_weights(newroot, None, cost_func, k)
@@ -642,52 +652,54 @@ def compute_dual_weights(qtree, cost_func, k):
 #test on mnist zeros
 
 def normalize_image(im):
-   s = np.sum(im)
-   normalized_im = im/s
-   return normalized_im
+    # rescale pixel values to sum to 1
+    s = np.sum(im)
+    normalized_im = im/s
+    return normalized_im
 
 def images_to_points(images):
-   points = []
-   m = 0
-   n = 0
-   for im in images:
-       if im.shape[0] > m:
-           m = im.shape[0]
-       if im.shape[1] > n:
-           n = im.shape[1]
+    # process image into list of points with masses
+    points = []
+    m = 0
+    n = 0
+    for im in images:
+        if im.shape[0] > m:
+            m = im.shape[0]
+        if im.shape[1] > n:
+            n = im.shape[1]
 
-   for i in range(len(images)):
-       row_diff = m - images[i].shape[0]
-       col_diff = n - images[i].shape[1]
-       images[i] = np.pad(images[i], ((math.floor(row_diff/2), math.ceil(row_diff/2)), (math.floor(col_diff/2), math.ceil(col_diff/2))),
-                   'constant', constant_values=0)
+    for i in range(len(images)):
+        row_diff = m - images[i].shape[0]
+        col_diff = n - images[i].shape[1]
+        images[i] = np.pad(images[i], ((math.floor(row_diff/2), math.ceil(row_diff/2)), (math.floor(col_diff/2), math.ceil(col_diff/2))),
+                    'constant', constant_values=0)
 
-   for i in range(m):
-       for j in range(n):
-           p = point(i, j, [im[i][j] for im in images])
-           points.append(p)
-           
-   return points, (m, n)
+    for i in range(m):
+        for j in range(n):
+            p = point(i, j, [im[i][j] for im in images])
+            points.append(p)
+            
+    return points, (m, n)
 
 
 def id_nodes(qtree):
-   #requires global id counter and id dictionary
-   global id
-   global iddict
-   qtree.id = id
-   iddict[id] = qtree
-   if len(qtree.points) != 0:
-       iddict[(qtree.points[0].x, qtree.points[0].y)] = qtree
-   id += 1
-   if qtree.botleft != None:
-       id_nodes(qtree.botleft)
-   if qtree.botright != None:
-       id_nodes(qtree.botright)
-   if qtree.topleft != None:
-       id_nodes(qtree.topleft)
-   if qtree.topright != None:
-       id_nodes(qtree.topright)
-
+    # requires global id counter and id dictionary
+    #givve each node in tree a unique id
+    global id
+    global iddict
+    qtree.id = id
+    iddict[id] = qtree
+    if len(qtree.points) != 0:
+        iddict[(qtree.points[0].x, qtree.points[0].y)] = qtree
+    id += 1
+    if qtree.botleft != None:
+        id_nodes(qtree.botleft)
+    if qtree.botright != None:
+        id_nodes(qtree.botright)
+    if qtree.topleft != None:
+        id_nodes(qtree.topleft)
+    if qtree.topright != None:
+        id_nodes(qtree.topright)
 
 # import glob
 # from PIL import Image
@@ -714,22 +726,23 @@ def id_nodes(qtree):
 
 edgesdict = {}
 def traverse_tree_spanner(qtree, const, id):
-   global spanner
-   if qtree.length <= const:
-       if qtree.length not in spanner:
-           spanner[qtree.length] = []
-       spanner[qtree.length].append(qtree)
-   
-   if qtree.botleft != None:
-       traverse_tree_spanner(qtree.botleft, const)
-   if qtree.botright != None:
-       traverse_tree_spanner(qtree.botright, const)
-   if qtree.topleft != None:
-       traverse_tree_spanner(qtree.topleft, const)
-   if qtree.topright != None:
-       traverse_tree_spanner(qtree.topright, const)
+    # NOT USED
+    global spanner
+    if qtree.length <= const:
+        if qtree.length not in spanner:
+            spanner[qtree.length] = []
+        spanner[qtree.length].append(qtree)
 
+    if qtree.botleft != None:
+        traverse_tree_spanner(qtree.botleft, const)
+    if qtree.botright != None:
+        traverse_tree_spanner(qtree.botright, const)
+    if qtree.topleft != None:
+        traverse_tree_spanner(qtree.topleft, const)
+    if qtree.topright != None:
+        traverse_tree_spanner(qtree.topright, const)
 
+#CAN IGNORE, supposed to construct a proper spanner but is not used
 global spanner
 def construct_spanner(qtree, epsilon, spread, level, d):
    if level <= math.log2(spread):
@@ -744,7 +757,7 @@ def construct_spanner(qtree, epsilon, spread, level, d):
        if spanner.isempty():
            construct_spanner(qtree.botright, epsilon, spread, level - 1, d)
 
-
+#gets a list of all leaf nodes
 def get_leafs(qtree):
    global leafnodes
    if is_leaf(qtree):
@@ -759,7 +772,9 @@ def get_leafs(qtree):
    if qtree.topright != None:
        get_leafs(qtree.topright)
 
+
 global leafnodes
+#constructs a complete graph on the leafs
 def spanner_with_images(qtree):
    global edgesdict
    global leafnodes
@@ -775,6 +790,7 @@ def spanner_with_images(qtree):
                edgesdict[u.id].add(v.id)
 
 
+#adds tree edges to the edgesdict and counts the number of edges
 def add_tree_edges(qtree):
    global edgesdict
    global numedges
@@ -798,20 +814,15 @@ def add_tree_edges(qtree):
        add_tree_edges(qtree.topleft)
    if qtree.topright != None:
        add_tree_edges(qtree.topright)
+ 
 
-def construct_dualweights_dict(qtree):
-   global dualweights
-   dualweights[qtree.id] = qtree.dualweight
-
-   
-
-
+#initializes the adjacency matrix
 def construct_adjacency_matrix(qtree, k):
    global edgesdict
    global adjacency_matrix
    spanner_with_images(qtree)
    numnodes = len(edgesdict.keys())
-   adjacency_matrix = np.array([np.array([np.zeros(k) for y in range(numnodes)]) for z in range(numnodes)])   #gotta be a better way of doing this
+   adjacency_matrix = np.zeros((numnodes, numnodes, k))   
 #    for u in edgesdict:
 #        for v in edgesdict[u]:
 #            adjacency_matrix[u][v] = [0 for i in range(k)]
@@ -820,7 +831,7 @@ def construct_adjacency_matrix(qtree, k):
 # construct_adjacency_matrix(5)
 # print(adjacency_matrix)
            
-
+#adds the tree flows to the adjacency 
 def add_tree_flows_adjmatrix(qtree, k):
    global adjacency_matrix
 
@@ -829,16 +840,18 @@ def add_tree_flows_adjmatrix(qtree, k):
 
    u = qtree.id
    
+   #for a given child, add the flow to matrix
    if qtree.botleft != None:
-       add_tree_flows_adjmatrix(qtree.botleft, k)
+       add_tree_flows_adjmatrix(qtree.botleft, k) #recurse
        v = qtree.botleft.id
        for i in range(k):
-           if qtree.botleft.flow[i] > 0.000000000000001:
+           if qtree.botleft.flow[i] > 0.000000000000001: #if the flow is positive in tree, then it is backward direction and add to v->u in matrix
        
                adjacency_matrix[v][u][i] += qtree.botleft.flow[i]
-           elif qtree.botleft.flow[i] < -0.000000000000001:
+           elif qtree.botleft.flow[i] < -0.000000000000001: #if flow is negative, then it is proper direction and subtract (so it becomes positive) it form u->v in matrix
            
                adjacency_matrix[u][v][i] -= qtree.botleft.flow[i]
+   #same as previous if
    if qtree.botright != None:
        add_tree_flows_adjmatrix(qtree.botright, k)
        v = qtree.botright.id
@@ -868,26 +881,29 @@ def add_tree_flows_adjmatrix(qtree, k):
                adjacency_matrix[u][v][i] -= qtree.topright.flow[i]
 
 #maintains shape of tree, resets flows, and updates leafs with leftover mass
+               
 def leftover_mass_tree(qtree, k): 
+    global ogmass
     if qtree == None:
         return
     if is_leaf(qtree):
         pt = qtree.points[0]
-        # id = iddict[(pt.x, pt.y)].id
-        # leftovermass = np.zeros(k)
-        # for v in edgesdict[id]:
-        #     leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
-        # leftovermass = pt.data - leftovermass
-        # pt.data = leftovermass
-
         id = iddict[(pt.x, pt.y)].id
-        leftovermass = [0 for i in range(k)]
+        ogptmass = ogmass[(pt.x, pt.y)]
+        leftovermass = np.zeros(k)
         for v in edgesdict[id]:
-            for z in range(k):
-                leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
-        for y in range(k):
-            leftovermass[y] = pt.data[y] - leftovermass[y]
+            leftovermass += (adjacency_matrix[id][v] - adjacency_matrix[v][id])
+        leftovermass = ogptmass - leftovermass
         pt.data = leftovermass
+
+        # id = iddict[(pt.x, pt.y)].id
+        # leftovermass = [0 for i in range(k)]
+        # for v in edgesdict[id]:
+        #     for z in range(k):
+        #         leftovermass[z] += (adjacency_matrix[id][v][z] - adjacency_matrix[v][id][z])
+        # for y in range(k):
+        #     leftovermass[y] = pt.data[y] - leftovermass[y]
+        # pt.data = leftovermass
 
         qtree.reset()
     
@@ -897,103 +913,138 @@ def leftover_mass_tree(qtree, k):
     leftover_mass_tree(qtree.topleft, k)
     leftover_mass_tree(qtree.topright, k)
 
+
+
+#core of the mwu alg
 def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
     global cost
-    global edgesdict
-    global adjacency_matrix
-    global dualweights
-    global barycenter
+    global edgesdict #dictionary of all the edges in our graph. Keys are id of nodes and values are list of ids of nodes that have edges to key
+    global adjacency_matrix #graph structure, is numedges x numedges x k in size
+    global dualweights #dictionary for dual weights, keys are node ids and values are the corresponding dualweights to the node
+    global barycenter #dictionary representing the barycenter, keys are coordinates, values are corresponding mass
 
-    global id
-    global iddict
+    global id #counter for ids
+    global iddict #dictionary to find the qtree/id for a 
 
     gstar = cost
     g = gstar/math.log2(spread)      #problem if spread is small? 
-    t = 8*((math.log2(spread))**2)*math.log2(k*numedges)
-
-    while g <= gstar:      # can avoid doing first iteration
+    t = (epsilon**-1)*8*((math.log2(spread))**2)*math.log2(k*numedges)
+    
+    
+    while g <= gstar: 
+        #initialize the adjacency matrix flows on all edges from the paper     
         for u in edgesdict:
             for v in edgesdict[u]:
             #    for i in range(k):
             #        adjacency_matrix[u][v][i] = (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
                 adjacency_matrix[u][v] += (g/(k*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)*numedges))
-                                                                                                              
+
+        #start iterating                                                                                
         for iteration in range(math.ceil(t)):
-            # leftover_mass_tree(qtree, k)
-            #qtree.printsub()
-            ptlistcopy = copy.deepcopy(ptlist)
-            for pt in ptlistcopy:
-                id = iddict[(pt.x, pt.y)].id
-                leftovermass = np.zeros(k)
-                for v in edgesdict[id]:
-                    for i in range(k):
-                        leftovermass[i] = pt.data[i] - adjacency_matrix[id][v][i] + adjacency_matrix[v][id][i]
-                pt.data = leftovermass
+            #print(iteration)
 
-            newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
-            newqtree.insert_list(ptlistcopy)
-            newqtree.killemptychildren()
-            id = 0
-            id_nodes(newqtree)
+            #compute the leftover mass for every point
+            # ptlistcopy = copy.deepcopy(ptlist)
+            # for pt in ptlistcopy:
+            #     ptid = iddict[(pt.x, pt.y)].id #figure out the id of 
+            #     leftovermass = np.zeros(k)
+            #     #actually sum up the leftover mass
+            #     for v in edgesdict[ptid]:
+            #         for i in range(k):
+            #             leftovermass[i] = leftovermass[i] + adjacency_matrix[ptid][v][i] - adjacency_matrix[v][ptid][i]
+            #     pt.data -= leftovermass
 
+            # #construct new qtree based off the leftover mass
+            # newqtree = quadtree(boundingbox[0], boundingbox[1], boundingbox[2])
+            # newqtree.insert_list(ptlistcopy)
+            # newqtree.killemptychildren()
+            # id = 0
+            # id_nodes(newqtree)
+
+            #compute barycenter cost for the leftover mass tree and recompute the dualweights
+            leftover_mass_tree(qtree, k)
             cost = 0
             barycenter = {}
-            compute_barycenter(newqtree, cost_func, k)
+            compute_barycenter(qtree, cost_func, k)
             #print(barycenter)
-            dualweights = {}
-            compute_dual_weights(newqtree, cost_func, k)
+            dualweights = np.zeros((len(edgesdict.keys()), k))
+            compute_dual_weights(qtree, cost_func, k)
             #print(cost)
             
+            #if cost small enough then we have found our solution
             if cost <= epsilon*g:
-                add_tree_flows_adjmatrix(newqtree, k)
+                add_tree_flows_adjmatrix(qtree, k) #add the flows of our edges in the tree to the adjacency matrix to compute the overall cost
                 print(barycenter)
                 cost = 0
+                #compute the overall cost
                 for u in edgesdict:
                     for v in edgesdict[u]:
                         for i in range(k):
                             a = abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])
                             b = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                             cost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                        # cost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
-                        #print(cost/2)
-                cost = cost/2
+                cost = cost/2 #our iterations double count so divide by 2 at the end
                 return
             else:
-                #print(adjacency_matrix)
+                #if we didnt find a proper solution perform the mwu
                 newcost = 0
+                #iterates through all the edges and performs the update
+                edgeset = set()
                 for u in edgesdict:
+                    edgeset.add(u)
                     for v in edgesdict[u]:
+                        if v in edgeset:
+                            continue
                         for i in range(k):
                             #print(math.exp((epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))))
                             adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[u][i]-dualweights[v][i])/cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)))
-                for u in edgesdict:
-                    for v in edgesdict[u]:
-                        for i in range(k):
+                            adjacency_matrix[v][u][i] = adjacency_matrix[v][u][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[v][i]-dualweights[u][i])/cost_func(iddict[v].x, iddict[u].x, iddict[v].y, iddict[u].y)))
                             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                #recompute the newcost to rescale the flows by g/newcost
+                # for u in edgesdict:
+                #     for v in edgesdict[u]:
+                #         for i in range(k):
+                #             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                         #adjacency_matrix[u][v]
                         #newcost += sum(adjacency_matrix[u][v]*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y))
                 #print(adjacency_matrix)
-                adjacency_matrix = adjacency_matrix * (g/newcost*2)
                 
-                s = 0
-                for u in edgesdict:
-                    for v in edgesdict[u]:
-                        for i in range(k):
-                            s += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                ##print(s/2)
+                adjacency_matrix = adjacency_matrix * (g/(newcost)) #rescale the flows
+                #again cost is divided by 2 due to double counting
+                
+                # s = 0
+                # for u in edgesdict:
+                #     for v in edgesdict[u]:
+                #         for i in range(k):
+                #             s += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                # print(s/2)
             #    for u in edgesdict:
             #        for v in edgesdict[u]:
             #         #    for i in range(k):
             #         #        adjacency_matrix[u][v][i] = adjacency_matrix[u][v][i]*(g/newcost)
             #            adjacency_matrix[u][v] = adjacency_matrix[u][v] * (g/newcost)
-            
-            
 
         g = (1+epsilon)*g
 
     return
 
+def fill_cost_matrix(qtree):
+    global cost_matrix
 
+
+def construct_cost_matrix(qtree, k, cost_func):
+    global edgesdict
+    global cost_matrix
+    numnodes = len(edgesdict.keys())
+    cost_matrix = np.zeros((numnodes, numnodes, k))
+    for u in edgesdict:
+        for v in edgesdict[u]:
+            edgecost = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+            
+
+
+
+#plots the barycenter on a graph, you don't need to worry about this
 def plotbarycenter(barycenterdict, point_size, image_size):
    coords = barycenterdict.items()
    x = [pt[0][0] for pt in coords]
@@ -1007,7 +1058,11 @@ def plotbarycenter(barycenterdict, point_size, image_size):
    plt.ylim(0, image_size[0])
    plt.gca().invert_yaxis()
    plt.show()
-   
+
+
+
+#run example for distributions at (1,1) - [1, 0, 1] and (1,-1) - [0, 1, 0]
+
 cost = 0
 barycenter = {}
 
@@ -1019,6 +1074,8 @@ numedges = 0
 edgesdict = {}
 adjacency_matrix = []
 leafnodes = []
+cost_matrix = []
+
 
 testqtree = quadtree(0, 0, 4)
 ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
@@ -1026,6 +1083,10 @@ insert_list(testqtree, ptlist)
 testqtree.killemptychildren()
 id_nodes(testqtree)
 # testqtree.printsub()
+
+ogmass = {}
+for pt in ptlist:
+    ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
 compute_barycenter(testqtree, euclidean_dist, 3)
 # print("COST", cost)
@@ -1056,6 +1117,10 @@ print(adjacency_matrix)
 # insert_list(mnist_qtree, zero_image_points)
 # # for p in zero_image_points:
 # #     mnist_qtree0.insert(p)
+
+# ogmass = {}
+# for pt in zero_image_points:
+#     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
 # k = 3
 
