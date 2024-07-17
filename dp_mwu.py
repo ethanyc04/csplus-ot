@@ -928,7 +928,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
     gstar = cost
     g = gstar/math.log2(spread)      #problem if spread is small? 
-    t = 8*((math.log2(spread))**2)*math.log2(k*numedges)
+    t = (epsilon**-1)*8*((math.log2(spread))**2)*math.log2(k*numedges)
     
     
     while g <= gstar: 
@@ -967,7 +967,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             barycenter = {}
             compute_barycenter(qtree, cost_func, k)
             #print(barycenter)
-            dualweights = np.zeros((len(edgesdict.keys())), k)
+            dualweights = np.zeros((len(edgesdict.keys()), k))
             compute_dual_weights(qtree, cost_func, k)
             #print(cost)
             
@@ -1028,11 +1028,9 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
     return
 
-def fill_cost_matrix(qtree):
-    global cost_matrix
 
 
-def construct_cost_matrix(qtree, k, cost_func):
+def construct_cost_matrix(k, cost_func):
     global edgesdict
     global cost_matrix
     numnodes = len(edgesdict.keys())
@@ -1040,6 +1038,9 @@ def construct_cost_matrix(qtree, k, cost_func):
     for u in edgesdict:
         for v in edgesdict[u]:
             edgecost = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+            for i in range(k):
+                cost_matrix[u][v][i] = edgecost
+
             
 
 
@@ -1098,8 +1099,9 @@ compute_dual_weights(testqtree, euclidean_dist, 3)
 # print(dualweights)
 
 construct_adjacency_matrix(testqtree, 3)
+construct_cost_matrix(3, euclidean_dist)
 
-mwu(testqtree, euclidean_dist, .05, 3, 3, numedges, [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])], (0, 0 ,4))
+mwu(testqtree, euclidean_dist, .2, 3, 3, numedges, [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])], (0, 0 ,4))
 print(cost)
 print(adjacency_matrix)
 
