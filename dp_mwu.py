@@ -993,19 +993,18 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             if cost <= epsilon*g:
                 add_tree_flows_adjmatrix(qtree, k) #add the flows of our edges in the tree to the adjacency matrix to compute the overall cost
                 print(barycenter)
-                cost = 0
+                cost = np.sum(np.abs(adjacency_matrix - np.transpose(adjacency_matrix, (1, 0, 2)))*cost_matrix)/2
                 #compute the overall cost
-                for u in edgesdict:
-                    for v in edgesdict[u]:
-                        for i in range(k):
-                            a = abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])
-                            b = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                            cost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                cost = cost/2 #our iterations double count so divide by 2 at the end
+                # for u in edgesdict:
+                #     for v in edgesdict[u]:
+                #         for i in range(k):
+                #             a = abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])
+                #             b = cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                #             cost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                # cost = cost/2 #our iterations double count so divide by 2 at the end
                 return
             else:
                 #if we didnt find a proper solution perform the mwu
-                newcost = 0
                 #print(cost_matrix)
                 adjacency_matrix = adjacency_matrix * np.exp(epsilon/(2*(math.log2(spread)**2))*(dual_matrix/cost_matrix))
                 #iterates through all the edges and performs the update
@@ -1021,22 +1020,15 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
                 #             adjacency_matrix[v][u][i] = adjacency_matrix[v][u][i]*math.exp(epsilon/(2*(math.log2(spread)**2))*((dualweights[v][i]-dualweights[u][i])/cost_func(iddict[v].x, iddict[u].x, iddict[v].y, iddict[u].y)))
                 #             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
                 #recompute the newcost to rescale the flows by g/newcost
-                for u in edgesdict:
-                    for v in edgesdict[u]:
-                        for i in range(k):
-                            newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                        adjacency_matrix[u][v]
-                #print(adjacency_matrix)
-                
-                adjacency_matrix = adjacency_matrix * (g/(newcost/2)) #rescale the flows
-                #again cost is divided by 2 due to double counting
-                
-                # s = 0
+                newcost = np.sum(np.abs(adjacency_matrix - np.transpose(adjacency_matrix, (1, 0, 2)))*cost_matrix)/2
+                #cost is divided by 2 due to double counting
                 # for u in edgesdict:
                 #     for v in edgesdict[u]:
                 #         for i in range(k):
-                #             s += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
-                # print(s/2)
+                #             newcost += abs(adjacency_matrix[u][v][i]-adjacency_matrix[v][u][i])*cost_func(iddict[u].x, iddict[v].x, iddict[u].y, iddict[v].y)
+                
+                adjacency_matrix = adjacency_matrix * (g/(newcost)) #rescale the flows
+                
             #    for u in edgesdict:
             #        for v in edgesdict[u]:
             #         #    for i in range(k):
