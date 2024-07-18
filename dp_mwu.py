@@ -324,14 +324,14 @@ def euclidean_dist(x1, x2, y1, y2):
 def positive_flow(qtree):    #return number of distributions with positive flow
     n = 0      
     for f in qtree.flow:
-        if f > 0.000000000000001:
+        if f > 0.00000000000001:
             n+=1
     return n
 
 def negative_flow(qtree):    #return number of distributions with negative flow
     n = 0      
     for f in qtree.flow:
-        if f < -0.000000000000001:
+        if f < -0.00000000000001:
             n+=1
     return n
 
@@ -526,7 +526,7 @@ def DFS_dual_weights(new, parent, cost_func, k):
         for i in range(k):
             if parent.flow[i] < -.00000000000001:
                 new.dualweight[i] = parent.dualweight[i] + edgecost
-            elif parent.flow[i] > 0.0000000000001:
+            elif parent.flow[i] > 0.00000000000001:
                 new.dualweight[i] = parent.dualweight[i] - edgecost
             else:
                 new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
@@ -899,11 +899,11 @@ def leftover_mass_tree(qtree, k, incflows):
         # ogptmass = ogmass[(pt.x, pt.y)]
         # leftovermass = np.zeros(k)
 
-        # matrixincflow = incflows[ptid]
-        # matrixoutflow = np.sum(adjacency_matrix[ptid])
+        # # matrixincflow = incflows[ptid]
+        # # matrixoutflow = np.sum(adjacency_matrix[ptid])
 
-        # incflow = np.zeros(k)
-        # outgoingflow = np.zeros(k)
+        # # incflow = np.zeros(k)
+        # # outgoingflow = np.zeros(k)
         # for v in edgesdict[ptid]:
         #     leftovermass += (adjacency_matrix[ptid][v] - adjacency_matrix[v][ptid])
         # leftovermass = ogptmass - leftovermass
@@ -944,7 +944,8 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
     gstar = cost
     g = gstar/math.log2(spread)      #problem if spread is small? 
-    t = (epsilon**-1)*8*((math.log2(spread))**2)*math.log2(k*numedges)
+    t = (epsilon**0)*8*((math.log2(spread))**2)*math.log2(k*numedges)
+    print(t)
     
     
     while g <= gstar: 
@@ -957,7 +958,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
         #start iterating                                                                                
         for iteration in range(math.ceil(t)):
-            #print(iteration)
+            print(iteration)
 
             #compute the leftover mass for every point
             # ptlistcopy = copy.deepcopy(ptlist)
@@ -1088,78 +1089,78 @@ leafnodes = []
 cost_matrix = []
 
 
-testqtree = quadtree(0, 0, 4)
-ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
-insert_list(testqtree, ptlist)
-testqtree.killemptychildren()
-id_nodes(testqtree)
-# testqtree.printsub()
-
-ogmass = {}
-for pt in ptlist:
-    ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
-
-compute_barycenter(testqtree, euclidean_dist, 3)
-# print("COST", cost)
-# print(barycenter)
-# #qtree.printsub()
-compute_dual_weights(testqtree, euclidean_dist, 3)
-# printdualweights(qtree)
-# print(dualweightsum)
-# print(dualweights)
-
-construct_adjacency_matrix(testqtree, 3)
-construct_cost_matrix(3, euclidean_dist)
-
-mwu(testqtree, euclidean_dist, .2, 3, 3, numedges, [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])], (0, 0 ,4))
-print(cost)
-print(adjacency_matrix)
-
-# import glob
-# zero_images = []
-# for filename in glob.glob('testing images/mnist_zeros/*.png'): 
-#    im = np.array(Image.open(filename))
-#    normalized_im = normalize_image(im)
-#    zero_images.append(normalized_im)
-# zero_image_points, zero_image_size = images_to_points(zero_images[:3])
-# cost = 0
-# barycenter = {}
-# mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
-# mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
-# insert_list(mnist_qtree, zero_image_points)
-# # for p in zero_image_points:
-# #     mnist_qtree0.insert(p)
+# testqtree = quadtree(0, 0, 4)
+# ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
+# insert_list(testqtree, ptlist)
+# testqtree.killemptychildren()
+# id_nodes(testqtree)
+# # testqtree.printsub()
 
 # ogmass = {}
-# for pt in zero_image_points:
+# for pt in ptlist:
 #     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
-# k = 3
+# compute_barycenter(testqtree, euclidean_dist, 3)
+# # print("COST", cost)
+# # print(barycenter)
+# # #qtree.printsub()
+# compute_dual_weights(testqtree, euclidean_dist, 3)
+# # printdualweights(qtree)
+# # print(dualweightsum)
+# # print(dualweights)
 
-# mnist_qtree.killemptychildren()
-# id_nodes(mnist_qtree)
-# compute_barycenter(mnist_qtree, euclidean_dist, k)
+# construct_adjacency_matrix(testqtree, 3)
+# construct_cost_matrix(3, euclidean_dist)
+
+# mwu(testqtree, euclidean_dist, .2, 3, 3, numedges, [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])], (0, 0 ,4))
+# print(cost)
+# print(adjacency_matrix)
+
+import glob
+zero_images = []
+for filename in glob.glob('testing images/mnist_zeros/*.png'): 
+   im = np.array(Image.open(filename))
+   normalized_im = normalize_image(im)
+   zero_images.append(normalized_im)
+zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+cost = 0
+barycenter = {}
+mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
+mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
+insert_list(mnist_qtree, zero_image_points)
+# for p in zero_image_points:
+#     mnist_qtree0.insert(p)
+
+ogmass = {}
+for pt in zero_image_points:
+    ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
+
+k = 3
+
+mnist_qtree.killemptychildren()
+id_nodes(mnist_qtree)
+compute_barycenter(mnist_qtree, euclidean_dist, k)
+plotbarycenter(barycenter, 100, zero_image_size)
+compute_dual_weights(mnist_qtree, euclidean_dist, k)
+construct_adjacency_matrix(mnist_qtree, k)
+construct_cost_matrix(k, euclidean_dist)
+print(cost)
+spread = math.sqrt(27**2+27**2)
+barycenter = {}
+mwu(mnist_qtree, euclidean_dist, .2, spread, k, numedges, zero_image_points,(mnist_sq_x, mnist_sq_y, mnist_sq_l))
+
+
+totalmass = 0
+newbc = {}
+for key in barycenter:
+   totalmass += barycenter[key]
+   if barycenter[key] > .0000002:
+       newbc[key] = barycenter[key]
 # plotbarycenter(barycenter, 100, zero_image_size)
-# compute_dual_weights(mnist_qtree, euclidean_dist, k)
-# construct_adjacency_matrix(mnist_qtree, k)
-# print(cost)
-# spread = math.sqrt(27**2+27**2)
-# barycenter = {}
-# print(numedges)
-# mwu(mnist_qtree, euclidean_dist, .2, spread, k, numedges, zero_image_points,(mnist_sq_x, mnist_sq_y, mnist_sq_l))
-
-
-# totalmass = 0
-# newbc = {}
-# for key in barycenter:
-#    totalmass += barycenter[key]
-#    if barycenter[key] > .0000002:
-#        newbc[key] = barycenter[key]
-# # plotbarycenter(barycenter, 100, zero_image_size)
-# plotbarycenter(newbc, 100, zero_image_size)
-# print(totalmass)
-# print(cost)
-# totalmass = 0
-# for key in newbc:
-#    totalmass += newbc[key]
-# print(totalmass)
+plotbarycenter(newbc, 100, zero_image_size)
+print(totalmass)
+print(cost)
+totalmass = 0
+for key in newbc:
+   totalmass += newbc[key]
+print(totalmass)
