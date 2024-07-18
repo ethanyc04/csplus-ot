@@ -882,20 +882,32 @@ def add_tree_flows_adjmatrix(qtree, k):
 
 #maintains shape of tree, resets flows, and updates leafs with leftover mass
                
-def leftover_mass_tree(qtree, k): 
+def leftover_mass_tree(qtree, k, incflows): 
     global ogmass
     if qtree == None:
         return
     if is_leaf(qtree):
         pt = qtree.points[0]
-        ptid = iddict[(pt.x, pt.y)].id
+        id = iddict[(pt.x, pt.y)].id
         ogptmass = ogmass[(pt.x, pt.y)]
         leftovermass = np.zeros(k)
-        
-        for v in edgesdict[ptid]:
-            leftovermass += (adjacency_matrix[ptid][v] - adjacency_matrix[v][ptid])
-        leftovermass = ogptmass - leftovermass
+        leftovermass = ogptmass - (np.sum(adjacency_matrix[id],0) - incflows[id])
         pt.data = leftovermass
+        
+        # pt = qtree.points[0]
+        # ptid = iddict[(pt.x, pt.y)].id
+        # ogptmass = ogmass[(pt.x, pt.y)]
+        # leftovermass = np.zeros(k)
+
+        # matrixincflow = incflows[ptid]
+        # matrixoutflow = np.sum(adjacency_matrix[ptid])
+
+        # incflow = np.zeros(k)
+        # outgoingflow = np.zeros(k)
+        # for v in edgesdict[ptid]:
+        #     leftovermass += (adjacency_matrix[ptid][v] - adjacency_matrix[v][ptid])
+        # leftovermass = ogptmass - leftovermass
+        # pt.data = leftovermass
 
         # id = iddict[(pt.x, pt.y)].id
         # leftovermass = [0 for i in range(k)]
@@ -909,10 +921,10 @@ def leftover_mass_tree(qtree, k):
         qtree.reset()
     
     qtree.reset()
-    leftover_mass_tree(qtree.botleft, k)
-    leftover_mass_tree(qtree.botright, k)
-    leftover_mass_tree(qtree.topleft, k)
-    leftover_mass_tree(qtree.topright, k)
+    leftover_mass_tree(qtree.botleft, k, incflows)
+    leftover_mass_tree(qtree.botright, k, incflows)
+    leftover_mass_tree(qtree.topleft, k, incflows)
+    leftover_mass_tree(qtree.topright, k, incflows)
 
 def restructure_dual_weights(dualweights):       #for numpy optimization purposes
     m1 = np.tile(dualweights, (len(dualweights), 1, 1))
@@ -966,7 +978,8 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
             # id_nodes(newqtree)
 
             #compute barycenter cost for the leftover mass tree and recompute the dualweights
-            leftover_mass_tree(qtree, k)
+            incflows = np.sum(adjacency_matrix, 0)
+            leftover_mass_tree(qtree, k, incflows)
             cost = 0
             barycenter = {}
             compute_barycenter(qtree, cost_func, k)
