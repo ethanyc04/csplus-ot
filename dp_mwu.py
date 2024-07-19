@@ -322,19 +322,10 @@ def euclidean_dist(x1, x2, y1, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 def positive_flow(qtree):    #return number of distributions with positive flow
-    n = 0      
-    for f in qtree.flow:
-        if f > 0.00000000000001:
-            n+=1
-    return n
+    return len(np.where(qtree.flow > 0.00000000000001)[0])
 
 def negative_flow(qtree):    #return number of distributions with negative flow
-    n = 0      
-    for f in qtree.flow:
-        if f < -0.00000000000001:
-            n+=1
-    return n
-
+    return len(np.where(qtree.flow < -0.00000000000001)[0])
 
 def initialize(qtree, cost_func, k):
     # first step in DP algorithm: push all mass up
@@ -523,13 +514,20 @@ def DFS_dual_weights(new, parent, cost_func, k):
         k1 = negative_flow(parent)
         k1rev = positive_flow(parent)
         alpha = (k1 - k1rev)*edgecost
-        for i in range(k):
-            if parent.flow[i] < -.00000000000001:
-                new.dualweight[i] = parent.dualweight[i] + edgecost
-            elif parent.flow[i] > 0.00000000000001:
-                new.dualweight[i] = parent.dualweight[i] - edgecost
-            else:
-                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+
+        pos_flow_mask = np.where(parent.flow > 0.00000000000001)
+        neg_flow_mask = np.where(parent.flow < -0.00000000000001)
+        zero_flow_mask = np.where((parent.flow <= 0.00000000000001) & (parent.flow >= -0.00000000000001))
+        new.dualweight[neg_flow_mask] = parent.dualweight[neg_flow_mask] + edgecost
+        new.dualweight[pos_flow_mask] = parent.dualweight[pos_flow_mask] - edgecost
+        new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        # for i in range(k):
+        #     if parent.flow[i] < -.00000000000001:
+        #         new.dualweight[i] = parent.dualweight[i] + edgecost
+        #     elif parent.flow[i] > 0.00000000000001:
+        #         new.dualweight[i] = parent.dualweight[i] - edgecost
+        #     else:
+        #         new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
         dualweights[new.id] = new.dualweight
     elif parent != None:
         edgecost = cost_func(new.x, parent.x, new.y, parent.y)
@@ -538,13 +536,20 @@ def DFS_dual_weights(new, parent, cost_func, k):
         k1rev = negative_flow(new)
         alpha = (k1 - k1rev)*edgecost
 
-        for i in range(k):
-            if new.flow[i] > .00000000000001:
-                new.dualweight[i] = parent.dualweight[i] + edgecost
-            elif new.flow[i] < -.00000000000001:
-                new.dualweight[i] = parent.dualweight[i] - edgecost
-            else:
-                new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        pos_flow_mask = np.where(new.flow > 0.00000000000001)
+        neg_flow_mask = np.where(new.flow < -0.00000000000001)
+        zero_flow_mask = np.where((new.flow <= 0.00000000000001) & (new.flow >= -0.00000000000001))
+        new.dualweight[neg_flow_mask] = parent.dualweight[neg_flow_mask] - edgecost
+        new.dualweight[pos_flow_mask] = parent.dualweight[pos_flow_mask] + edgecost
+        new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+
+        # for i in range(k):
+        #     if new.flow[i] > .00000000000001:
+        #         new.dualweight[i] = parent.dualweight[i] + edgecost
+        #     elif new.flow[i] < -.00000000000001:
+        #         new.dualweight[i] = parent.dualweight[i] - edgecost
+        #     else:
+        #         new.dualweight[i] = parent.dualweight[i] + min(edgecost, (-sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
         dualweights[new.id] = new.dualweight
 
     if new.topleft != None and new.topleft != parent:
@@ -844,43 +849,41 @@ def add_tree_flows_adjmatrix(qtree, k):
    if qtree.botleft != None:
        add_tree_flows_adjmatrix(qtree.botleft, k) #recurse
        v = qtree.botleft.id
-       for i in range(k):
-           if qtree.botleft.flow[i] > 0.000000000000001: #if the flow is positive in tree, then it is backward direction and add to v->u in matrix
+       pos_flow_mask = np.where(qtree.botleft.flow > 0.000000000000001)
+       neg_flow_mask = np.where(qtree.botleft.flow < - 0.000000000000001)
+       adjacency_matrix[v][u][pos_flow_mask] += qtree.botleft.flow[pos_flow_mask]
+       adjacency_matrix[u][v][neg_flow_mask] -= qtree.botleft.flow[neg_flow_mask]
+    #    for i in range(k):
+    #        if qtree.botleft.flow[i] > 0.000000000000001: #if the flow is positive in tree, then it is backward direction and add to v->u in matrix
        
-               adjacency_matrix[v][u][i] += qtree.botleft.flow[i]
-           elif qtree.botleft.flow[i] < -0.000000000000001: #if flow is negative, then it is proper direction and subtract (so it becomes positive) it form u->v in matrix
+    #            adjacency_matrix[v][u][i] += qtree.botleft.flow[i]
+    #        elif qtree.botleft.flow[i] < -0.000000000000001: #if flow is negative, then it is proper direction and subtract (so it becomes positive) it form u->v in matrix
            
-               adjacency_matrix[u][v][i] -= qtree.botleft.flow[i]
+    #            adjacency_matrix[u][v][i] -= qtree.botleft.flow[i]
    #same as previous if
    if qtree.botright != None:
        add_tree_flows_adjmatrix(qtree.botright, k)
        v = qtree.botright.id
-       for i in range(k):
-           if qtree.botright.flow[i] > 0.000000000000001:
-               adjacency_matrix[v][u][i] += qtree.botright.flow[i]
-           elif qtree.botright.flow[i] < -0.000000000000001:
-               
-               adjacency_matrix[u][v][i] -= qtree.botright.flow[i]
+       pos_flow_mask = np.where(qtree.botright.flow > 0.000000000000001)
+       neg_flow_mask = np.where(qtree.botright.flow < - 0.000000000000001)
+       adjacency_matrix[v][u][pos_flow_mask] += qtree.botright.flow[pos_flow_mask]
+       adjacency_matrix[u][v][neg_flow_mask] -= qtree.botright.flow[neg_flow_mask]
+   
    if qtree.topleft != None:
        add_tree_flows_adjmatrix(qtree.topleft, k)
        v = qtree.topleft.id
-       for i in range(k):
-           if qtree.topleft.flow[i] > 0.000000000000001:
-               adjacency_matrix[v][u][i] += qtree.topleft.flow[i]
-           elif qtree.topleft.flow[i] < -0.000000000000001:
-               
-               adjacency_matrix[u][v][i] -= qtree.topleft.flow[i]
+       pos_flow_mask = np.where(qtree.topleft.flow > 0.000000000000001)
+       neg_flow_mask = np.where(qtree.topleft.flow < - 0.000000000000001)
+       adjacency_matrix[v][u][pos_flow_mask] += qtree.topleft.flow[pos_flow_mask]
+       adjacency_matrix[u][v][neg_flow_mask] -= qtree.topleft.flow[neg_flow_mask]
+   
    if qtree.topright != None:
        add_tree_flows_adjmatrix(qtree.topright, k)
        v = qtree.topright.id
-       for i in range(k):
-           if qtree.topright.flow[i] > 0.000000000000001:
-               adjacency_matrix[v][u][i] += qtree.topright.flow[i]
-           elif qtree.topright.flow[i] < -0.000000000000001:
-               
-               adjacency_matrix[u][v][i] -= qtree.topright.flow[i]
-
-#maintains shape of tree, resets flows, and updates leafs with leftover mass
+       pos_flow_mask = np.where(qtree.topright.flow > 0.000000000000001)
+       neg_flow_mask = np.where(qtree.topright.flow < - 0.000000000000001)
+       adjacency_matrix[v][u][pos_flow_mask] += qtree.topright.flow[pos_flow_mask]
+       adjacency_matrix[u][v][neg_flow_mask] -= qtree.topright.flow[neg_flow_mask]
                
 def leftover_mass_tree(qtree, k, incflows): 
     global ogmass
@@ -932,7 +935,7 @@ def restructure_dual_weights(dualweights):       #for numpy optimization purpose
     return m2 - m1
 
 #core of the mwu alg
-def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
+def mwu(qtree, cost_func, epsilon, spread, k, numedges, startingguess=None):
     global cost
     global edgesdict #dictionary of all the edges in our graph. Keys are id of nodes and values are list of ids of nodes that have edges to key
     global adjacency_matrix #graph structure, is numedges x numedges x k in size
@@ -943,13 +946,17 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
     global iddict #dictionary to find the qtree/id for a 
 
     gstar = cost
-    g = gstar/math.log2(spread)      #problem if spread is small? 
-    t = (epsilon**0)*8*((math.log2(spread))**2)*math.log2(k*numedges)
+    if startingguess != None:
+        g = startingguess
+    else:
+        g = gstar/math.log2(spread)      
+    t = (epsilon**-1)*8*((math.log2(spread))**2)*math.log2(k*numedges)
     print(t)
     
     
     while g <= gstar: 
-        #initialize the adjacency matrix flows on all edges from the paper     
+        #initialize the adjacency matrix flows on all edges from the paper
+        #adjacency_matrix += np.reciprocal(cost_matrix)*(1/(k*numedges))*g     
         for u in edgesdict:
             for v in edgesdict[u]:
             #    for i in range(k):
@@ -958,7 +965,7 @@ def mwu(qtree, cost_func, epsilon, spread, k, numedges, ptlist, boundingbox):
 
         #start iterating                                                                                
         for iteration in range(math.ceil(t)):
-            print(iteration)
+            #print(iteration)
 
             #compute the leftover mass for every point
             # ptlistcopy = copy.deepcopy(ptlist)
@@ -1089,78 +1096,78 @@ leafnodes = []
 cost_matrix = []
 
 
-# testqtree = quadtree(0, 0, 4)
-# ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
-# insert_list(testqtree, ptlist)
-# testqtree.killemptychildren()
-# id_nodes(testqtree)
-# # testqtree.printsub()
-
-# ogmass = {}
-# for pt in ptlist:
-#     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
-
-# compute_barycenter(testqtree, euclidean_dist, 3)
-# # print("COST", cost)
-# # print(barycenter)
-# # #qtree.printsub()
-# compute_dual_weights(testqtree, euclidean_dist, 3)
-# # printdualweights(qtree)
-# # print(dualweightsum)
-# # print(dualweights)
-
-# construct_adjacency_matrix(testqtree, 3)
-# construct_cost_matrix(3, euclidean_dist)
-
-# mwu(testqtree, euclidean_dist, .2, 3, 3, numedges, [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])], (0, 0 ,4))
-# print(cost)
-# print(adjacency_matrix)
-
-import glob
-zero_images = []
-for filename in glob.glob('testing images/mnist_zeros/*.png'): 
-   im = np.array(Image.open(filename))
-   normalized_im = normalize_image(im)
-   zero_images.append(normalized_im)
-zero_image_points, zero_image_size = images_to_points(zero_images[:3])
-cost = 0
-barycenter = {}
-mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
-mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
-insert_list(mnist_qtree, zero_image_points)
-# for p in zero_image_points:
-#     mnist_qtree0.insert(p)
+testqtree = quadtree(0, 0, 4)
+ptlist = [point(1, 1, [1, 0, 1]), point(1, -1, [0, 1, 0])]
+insert_list(testqtree, ptlist)
+testqtree.killemptychildren()
+id_nodes(testqtree)
+# testqtree.printsub()
 
 ogmass = {}
-for pt in zero_image_points:
+for pt in ptlist:
     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
 
-k = 3
+compute_barycenter(testqtree, euclidean_dist, 3)
+# print("COST", cost)
+# print(barycenter)
+# #qtree.printsub()
+compute_dual_weights(testqtree, euclidean_dist, 3)
+# printdualweights(qtree)
+# print(dualweightsum)
+# print(dualweights)
 
-mnist_qtree.killemptychildren()
-id_nodes(mnist_qtree)
-compute_barycenter(mnist_qtree, euclidean_dist, k)
-plotbarycenter(barycenter, 100, zero_image_size)
-compute_dual_weights(mnist_qtree, euclidean_dist, k)
-construct_adjacency_matrix(mnist_qtree, k)
-construct_cost_matrix(k, euclidean_dist)
+construct_adjacency_matrix(testqtree, 3)
+construct_cost_matrix(3, euclidean_dist)
+
+mwu(testqtree, euclidean_dist, .2, 3, 3, numedges)
 print(cost)
-spread = math.sqrt(27**2+27**2)
-barycenter = {}
-mwu(mnist_qtree, euclidean_dist, .2, spread, k, numedges, zero_image_points,(mnist_sq_x, mnist_sq_y, mnist_sq_l))
+print(adjacency_matrix)
 
+# import glob
+# zero_images = []
+# for filename in glob.glob('testing images/mnist_zeros/*.png'): 
+#    im = np.array(Image.open(filename))
+#    normalized_im = normalize_image(im)
+#    zero_images.append(normalized_im)
+# zero_image_points, zero_image_size = images_to_points(zero_images[:3])
+# cost = 0
+# barycenter = {}
+# mnist_sq_x, mnist_sq_y, mnist_sq_l = getboundingbox(zero_image_points)
+# mnist_qtree = quadtree(mnist_sq_x, mnist_sq_y, mnist_sq_l)
+# insert_list(mnist_qtree, zero_image_points)
+# # for p in zero_image_points:
+# #     mnist_qtree0.insert(p)
 
-totalmass = 0
-newbc = {}
-for key in barycenter:
-   totalmass += barycenter[key]
-   if barycenter[key] > .0000002:
-       newbc[key] = barycenter[key]
+# ogmass = {}
+# for pt in zero_image_points:
+#     ogmass[(pt.x, pt.y)] = copy.deepcopy(pt.data)
+
+# k = 3
+
+# mnist_qtree.killemptychildren()
+# id_nodes(mnist_qtree)
+# compute_barycenter(mnist_qtree, euclidean_dist, k)
 # plotbarycenter(barycenter, 100, zero_image_size)
-plotbarycenter(newbc, 100, zero_image_size)
-print(totalmass)
-print(cost)
-totalmass = 0
-for key in newbc:
-   totalmass += newbc[key]
-print(totalmass)
+# compute_dual_weights(mnist_qtree, euclidean_dist, k)
+# construct_adjacency_matrix(mnist_qtree, k)
+# construct_cost_matrix(k, euclidean_dist)
+# print(cost)
+# spread = math.sqrt(27**2+27**2)
+# barycenter = {}
+# mwu(mnist_qtree, euclidean_dist, .2, spread, k, numedges, zero_image_points,(mnist_sq_x, mnist_sq_y, mnist_sq_l))
+
+
+# totalmass = 0
+# newbc = {}
+# for key in barycenter:
+#    totalmass += barycenter[key]
+#    if barycenter[key] > .0000002:
+#        newbc[key] = barycenter[key]
+# # plotbarycenter(barycenter, 100, zero_image_size)
+# plotbarycenter(newbc, 100, zero_image_size)
+# print(totalmass)
+# print(cost)
+# totalmass = 0
+# for key in newbc:
+#    totalmass += newbc[key]
+# print(totalmass)
