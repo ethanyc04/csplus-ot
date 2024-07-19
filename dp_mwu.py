@@ -520,7 +520,8 @@ def DFS_dual_weights(new, parent, cost_func, k):
         zero_flow_mask = np.where((parent.flow <= 0.00000000000001) & (parent.flow >= -0.00000000000001))
         new.dualweight[neg_flow_mask] = parent.dualweight[neg_flow_mask] + edgecost
         new.dualweight[pos_flow_mask] = parent.dualweight[pos_flow_mask] - edgecost
-        new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        if len(zero_flow_mask[0]) > 0:
+            new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
         
         dualweights[new.id] = new.dualweight
     elif parent != None:
@@ -535,7 +536,8 @@ def DFS_dual_weights(new, parent, cost_func, k):
         zero_flow_mask = np.where((new.flow <= 0.00000000000001) & (new.flow >= -0.00000000000001))
         new.dualweight[neg_flow_mask] = parent.dualweight[neg_flow_mask] - edgecost
         new.dualweight[pos_flow_mask] = parent.dualweight[pos_flow_mask] + edgecost
-        new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
+        if len(zero_flow_mask) > 0:
+            new.dualweight[zero_flow_mask] = parent.dualweight[zero_flow_mask] + min(edgecost, (-np.sum(parent.dualweight) + new.augment_path_cost - alpha)/(k-k1-k1rev))
 
         dualweights[new.id] = new.dualweight
 
